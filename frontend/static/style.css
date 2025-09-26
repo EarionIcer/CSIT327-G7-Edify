@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+
+body { background: #1f1f1f; display: flex; justify-content: center; align-items: center; height: 100vh; }
+
+.container {
+  display: flex;
+  width: 80%;
+  max-width: 1000px;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.left {
+  flex: 1;
+  background: linear-gradient(135deg, #6a11cb, #2575fc);
+  color: #fff;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.brand { display: flex; align-items: center; margin-bottom: 20px; }
+.logo {
+  width: 40px; height: 40px; background: #fff;
+  border-radius: 8px; margin-right: 10px;
+}
+
+.left h2 { font-size: 32px; margin-bottom: 15px; }
+.left h2 span { font-weight: 700; }
+.left p { max-width: 300px; line-height: 1.5; }
+
+.right {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.right h2 {
+  text-align: center;
+  color: #4a56e2;
+  margin-bottom: 20px;
+}
+
+form input, form button {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+form .row { display: flex; gap: 10px; }
+
+.password-field { position: relative; }
+.password-field .toggle {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  cursor: pointer; font-size: 14px;
+}
+
+.checkbox {
+  font-size: 14px; margin: 10px 0; color: #555;
+}
+.checkbox a { color: #4a56e2; text-decoration: none; font-weight: 600; }
+
+button {
+  background: #4a56e2;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+  border: none;
+}
+
+button:hover { background: #3a46c2; }
+
+@media(max-width: 768px) {
+  .container { flex-direction: column; width: 95%; }
+  .left, .right { padding: 20px; }
+}
