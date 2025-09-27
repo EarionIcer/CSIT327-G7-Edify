@@ -30,7 +30,11 @@
             <input type="text" name="last_name" placeholder="Last Name" required>
           </div>
 
-          <input type="email" name="email" placeholder="Email Address" required>
+          <input type="email" name="email" placeholder="Email Address" value="{{ email|default:'' }}" required>
+          {% if error == "Account already exists!" %}
+            <p style="color: red; font-size: 14px; margin-top: 5px;">{{ error }}</p>
+          {% endif %}
+
 
           <div class="password-field">
             <input type="password" name="password" id="password" placeholder="Password" required>
@@ -54,6 +58,6 @@
     </div>
   </div>
 
-  <script src="func.js"></script>
+  <script src="{% static 'js/register.js' %}"></script>
 </body>
 </html>

@@ -18,18 +18,25 @@
     <!-- Right side -->
     <div class="login-form">
       <h2>Login</h2>
-      <form>
-        <label for="username">Username</label>
-        <input type="text" id="username" placeholder="Enter username" required>
+      <form method="POST" action="/login/">
+      {% csrf_token %}
+      
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="Enter email" required>
 
-        <label for="password">Password</label>
-        <div class="password-wrapper">
-          <input type="password" id="password" placeholder="Enter password" required>
-          <button type="button" id="togglePassword">Show</button>
-        </div>
+      <label for="password">Password</label>
+      <div class="password-wrapper">
+        <input type="password" id="password" name="password" placeholder="Enter password" required>
+        <button type="button" id="togglePassword">Show</button>
+      </div>
 
-        <button type="submit" class="btn">Login</button>
-      </form>
+      {% if error %}
+        <p style="color: red; font-size: 14px;">{{ error }}</p>
+      {% endif %}
+
+      <button type="submit" class="btn">Login</button>
+    </form>
+
     </div>
   </div>
 
