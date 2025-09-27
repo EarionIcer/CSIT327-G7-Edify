@@ -1,0 +1,47 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Login</title>
+  <link rel="stylesheet" href="{% static 'css/loginCss.css' %}">
+</head>
+<body>
+  <div class="container">
+    <!-- Left side -->
+    <div class="welcome">
+      <h1>Welcome Home</h1>
+    </div>
+
+    <!-- Right side -->
+    <div class="login-form">
+      <h2>Login</h2>
+      <form>
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Enter username" required>
+
+        <label for="password">Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="password" placeholder="Enter password" required>
+          <button type="button" id="togglePassword">Show</button>
+        </div>
+
+        <button type="submit" class="btn">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const toggleBtn = document.getElementById("togglePassword");
+    const passwordInput = document.getElementById("password");
+
+    toggleBtn.addEventListener("click", () => {
+      const type = passwordInput.type === "password" ? "text" : "password";
+      passwordInput.type = type;
+      toggleBtn.textContent = type === "password" ? "Show" : "Hide";
+    });
+  </script>
+</body>
+</html>
