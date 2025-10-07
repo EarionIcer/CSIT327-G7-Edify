@@ -45,3 +45,9 @@ def login_view(request):
             return HttpResponse("Invalid credentials!")
  
     return render(request, "login.html")
+    
+
+
+def navbar(request):
+    return render(request, 'navbar.html')
+
