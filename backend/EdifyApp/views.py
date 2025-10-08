@@ -47,7 +47,6 @@ def login_view(request):
     return render(request, "login.html")
     
 
-
 def navbar(request):
-    return render(request, 'navbar.html')
+    return render(request, "navbar.html")
 
