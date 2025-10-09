@@ -1,0 +1,65 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fixed Full-Page Navigation Bar</title>
+
+    <link rel="stylesheet" href="{% static 'css/navbarCss.css' %}" />
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+</head>
+<body>
+    <div class="page-container">
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-box"></div> 
+                    <h1>Edify</h1>
+                </div>
+            </div>
+
+            <ul class="menu main-menu">
+                <li class="active">
+                    <i class="fa-solid fa-table-columns icon"></i>
+                    <span class="text">Overview</span>
+                </li>
+                <li>
+                    <i class="fa-solid fa-upload icon"></i>
+                    <span class="text">Uploads</span>
+                </li>
+                <li>
+                    <i class="fa-solid fa-heart icon"></i>
+                    <span class="text">Favorites</span>
+                </li>
+                <li>
+                    <i class="fa-solid fa-user icon"></i>
+                    <span class="text">Profile</span>
+                </li>
+                <li>
+                    <i class="fa-solid fa-circle-info icon"></i>
+                    <span class="text">About</span>
+                </li>
+            </ul>
+
+            <ul class="menu bottom-menu"> 
+                <li>
+                    <i class="fa-solid fa-right-from-bracket icon"></i>
+                    <span class="text">Sign out</span>
+                </li>
+            </ul>
+        </aside>
+
+        <section class="content">
+            <h2>Your Page Content Goes Here</h2>
+        </section>
+    </div>
+
+    <script src="{% static 'js/navbar.js' %}"></script>
+</body>
+</html>

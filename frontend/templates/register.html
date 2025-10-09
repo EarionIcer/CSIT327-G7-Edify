@@ -1,4 +1,4 @@
-{% comment %} register.html {% endcomment %}
+{% comment %} register.html
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -33,13 +33,17 @@
           <input type="email" name="email" placeholder="Email Address" required>
 
           <div class="password-field">
-            <input type="password" name="password" id="password" placeholder="Password" required>
-            <span class="toggle" onclick="togglePassword('password')">👁</span>
+              <input type="password" name="password" id="password" placeholder="Password" required>
+              <span class="toggle" onclick="togglePassword('password', this)">
+                <ion-icon name="eye-outline"></ion-icon>
+              </span>
           </div>
 
           <div class="password-field">
             <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm Password" required>
-            <span class="toggle" onclick="togglePassword('confirm_password')">👁</span>
+            <span class="toggle" onclick="togglePassword('confirm_password', this)">
+              <ion-icon name="eye-outline"></ion-icon>
+            </span>
           </div>
 
           <label class="checkbox">
@@ -50,10 +54,151 @@
 
           <button type="submit">Sign up</button>
         </form>
+        <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+        <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 
     </div>
   </div>
-
   <script src="func.js"></script>
+</body>
+</html> {% endcomment %}
+
+
+{% comment %} register.html {% endcomment %}
+{% comment %} {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register Page</title>
+  <link rel="stylesheet" href="{% static 'css/registerCss.css' %}">
+</head>
+<body>
+  <div class="container">
+  
+    <div class="left">
+      <div class="brand">
+        <div class="logo"></div>
+        <h1>Edify</h1>
+      </div>
+      <h2>Hello, <br><span>Welcome!</span></h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam purus urna, lobortis ac risus ac, congue sollicitudin mauris.</p>
+    </div>
+
+    
+    <div class="right">
+      <h2>Create Account</h2>
+      <form id="registerForm" action="/register/" method="POST">
+          {% csrf_token %}
+          <div class="row">
+            <input type="text" name="first_name" placeholder="First Name" required>
+            <input type="text" name="last_name" placeholder="Last Name" required>
+          </div>
+
+          <input type="email" name="email" id="email" placeholder="Email Address" required>
+          <div id="email-error" class="error-message"></div>
+
+          <div class="password-field">
+              <input type="password" name="password" id="password" placeholder="Password" required minlength="8">
+              <span class="toggle" onclick="togglePassword('password', this)">
+                👁️
+              </span>
+          </div>
+          <div id="password-error" class="error-message"></div>
+
+          <div class="password-field">
+            <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm Password" required>
+            <span class="toggle" onclick="togglePassword('confirm_password', this)">
+              👁️
+            </span>
+          </div>
+          <div id="confirm-password-error" class="error-message"></div>
+
+          <label class="checkbox">
+            <input type="checkbox" required> I agree to the 
+            <a href="#">Terms of Service</a> and 
+            <a href="#">Privacy Policy</a>
+          </label>
+
+          <button type="submit">Sign up</button>
+
+          <div class="login-link">
+            Already have an account? <a href="/login/">Login</a>
+          </div>
+
+        </form>
+        </div>
+  </div>
+  <script src="{% static 'js/func.js' %}"></script>
+</body>
+</html> {% endcomment %}
+
+
+{% comment %} register.html {% endcomment %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register Page</title>
+  <link rel="stylesheet" href="{% static 'css/registerCss.css' %}" />
+</head>
+<body>
+  <div class="container">
+    <div class="left">
+      <div class="brand">
+        <h1>Edify</h1>
+      </div>
+      <h2>Hello, <span>Welcome!</span></h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    </div>
+
+    <div class="right">
+      <h2>Create Account</h2>
+
+      {% if messages %}
+      <ul class="flash-messages">
+        {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <form id="registerForm" method="POST" action="">
+        {% csrf_token %}
+        <div class="form-group">
+          <input type="text" name="first_name" placeholder="First Name" required />
+          <input type="text" name="last_name" placeholder="Last Name" required />
+        </div>
+
+        <input type="email" id="email" name="email" placeholder="Email Address" required />
+
+        <div class="password-wrapper">
+          <input type="password" id="password" name="password" placeholder="Password" required />
+          <span class="toggle-password" onclick="togglePassword('password')"></span>
+        </div>
+
+        <div class="password-wrapper">
+          <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required />
+          <span class="toggle-password" onclick="togglePassword('confirm_password')"></span>
+        </div>
+
+        <label>
+          <input type="checkbox" required /> I agree to the
+          <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+        </label>
+
+        <p id="error-message" class="error"></p>
+
+        <button type="submit" class="btn">Sign up</button>
+        <p class="login-link">Already have an account? <a href="/login">Login</a></p>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'js/func.js' %}"></script>
 </body>
 </html>

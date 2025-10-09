@@ -1,0 +1,119 @@
+/* --- CRITICAL FIX: Ensures 100% height is correctly calculated --- */
+html, body {
+    height: 100%; 
+    margin: 0;
+    padding: 0;
+}
+
+/* Page Container wraps the sidebar and content */
+.page-container {
+    display: flex; /* Aligns sidebar and content horizontally */
+    width: 100%;
+    height: 100%;
+}
+
+/* --- Global Styles --- */
+body {
+    font-family: "Poppins", sans-serif;
+    background: #1e1e1e; /* Dark content background */
+    color: #fff;
+}
+
+/* --- Sidebar Container --- */
+.sidebar {
+    width: 250px; 
+    /* NEW COLOR: Matches the specific light blue/purple from the latest image */
+    background: #7a82fb; 
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; 
+    
+    /* CRITICAL FIX: Forces sidebar to fill 100% of body height */
+    height: 100%; 
+    min-height: 100vh;
+    padding: 0; 
+    /* Adding a subtle shadow to separate it from the content */
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1); 
+}
+
+/* --- Header / Logo Section --- */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    /* Adjusted padding to match the visual spacing in the latest image */
+    padding: 30px 20px; 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-box {
+    width: 25px;
+    height: 25px;
+    background-color: white;
+    border-radius: 4px;
+}
+
+.logo h1 {
+    font-size: 20px;
+    color: white;
+    margin: 0;
+}
+
+/* --- Menu Sections --- */
+.menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.main-menu {
+    margin-top: 20px;
+    flex-grow: 1; /* Pushes the bottom menu to the bottom edge */
+}
+
+.menu li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    padding: 12px 20px; 
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.menu li:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* --- Active Item Styling (Matches the rounded block with slight hover effect) --- */
+.menu li.active {
+    background-color: white; 
+    color: #333; 
+    
+    /* Styling to create the floating block look */
+    margin: 0 15px; 
+    border-radius: 8px; /* Rounded corners on all sides */
+}
+
+/* Adjust padding inside the active item to compensate for margin */
+.menu li.active {
+    padding: 12px 20px; 
+}
+
+/* --- Bottom Sign Out Section --- */
+.bottom-menu {
+    padding-bottom: 30px; 
+}
+
+/* --- Content Area --- */
+.content {
+    flex-grow: 1; /* Takes up all remaining width */
+    padding: 30px;
+    background-color: #1e1e1e; 
+    height: 100%; 
+}
