@@ -1,114 +1,187 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-}
+/* Import Poppins font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 body {
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #f3f6fb;
+    font-family: 'Poppins', sans-serif;
+    background: #f2f2f2; /* off-white background for contrast */
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
 }
 
 .container {
-  width: 900px;
-  height: 500px;
-  display: flex;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    background: #ffffff; /* container slightly brighter than body */
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    width: 1050px; /* increased width */
+    max-width: 95%;
+    height: 650px; /* increased height */
+    overflow: hidden;
 }
 
-/* Left side */
+/* Left side: welcome + logo */
 .welcome {
-  flex: 1;
-  background: linear-gradient(135deg, #6b66f0, #8b7bff);
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+    background-color: #667EEA;
+    color: white;
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: 40px 30px;
+    position: relative;
+    text-align: left;
+}
+
+.logo-edify {
+    display: flex;
+    align-items: center;
+    margin-bottom: 50px;
+}
+
+p{
+    display: block;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    unicode-bidi: isolate;
+}
+
+.logo-box {
+    width: 70px;
+    height: 70px;
+    background: white;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.logo-box img {
+    width: 110%;
+    height: 110%;
 }
 
 .welcome h1 {
-  font-size: 42px;
-  font-weight: 700;
+    font-size: 32px;
+    margin: 0;
 }
 
-/* Right side */
+
+
+.welcome h3 {
+    margin: 20px 0;
+    font-size: 60px;
+}
+
+
+
+
+/* Right side: login form */
 .login-form {
-  flex: 1;
-  background: #fff;
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+    width: 45%;
+    padding: 60px 50px; /* more padding for allowance around inputs */
 }
 
 .login-form h2 {
-  margin-bottom: 20px;
-  color: #333;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #667EEA;
+    font-size: 40px;
 }
 
 .login-form label {
-  display: block;
-  margin-top: 15px;
-  font-size: 14px;
-  color: #444;
+    display: block;
+    margin-bottom: 5px;
+    color: #666;
+    font-weight: 500;
+    font-size: 12px;
 }
 
-.login-form input {
-  width: 100%;
-  padding: 12px;
-  margin-top: 6px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  font-size: 14px;
+.login-form input[type="text"],
+.login-form input[type="password"] {
+    width: 100%;
+    padding: 10px 20px 10px 9px; /* space for eye icon */
+    margin-bottom: 20px; /* more space between inputs */
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+    background: #f9f9f9; /* subtle input background to differentiate from container */
 }
 
-/* Password wrapper */
 .password-wrapper {
-  display: flex;
-  align-items: center;
+    position: relative;
 }
 
-.password-wrapper input {
-  flex: 1;
+.password-wrapper i {
+    position: absolute;
+    top: 36%;
+    right: -12px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #888;
+    font-size: 16px;
 }
 
-.password-wrapper button {
-  margin-left: 8px;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #6b66f0;
-  color: white;
-  cursor: pointer;
-  font-size: 12px;
+/* Extra options */
+.extra-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
 }
 
-.password-wrapper button:hover {
-  background: #564ce0;
+.extra-options input[type="checkbox"] {
+    margin-right: 5px;
 }
 
-/* Login button */
+.extra-options a {
+    color: #667EEA;
+    text-decoration: none;
+}
+
+.extra-options a:hover {
+    text-decoration: underline;
+}
+
+/* Button */
 .btn {
-  margin-top: 25px;
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #6b66f0, #8b7bff);
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+    display: inline-block;
+    width: 106%;
+    padding: 12px 20px;
+    background-color: #667EEA;
+    color: white;
+    border-radius: 8px;
+    border: none;
+    text-decoration: none;
+    transition: 0.3s;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
 }
 
 .btn:hover {
-  transform: translateY(-2px);
-  background: linear-gradient(90deg, #564ce0, #7a6cff);
+    background-color: #5565C1;
+}
+
+.signup-text {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+}
+
+.signup-text a {
+    color: #667EEA;
+    text-decoration: none;
+}
+
+.signup-text a:hover {
+    text-decoration: underline;
 }
