@@ -71,3 +71,9 @@ def dashboard(request):
     if "user_id" not in request.session:
         return redirect("/login/")
     return render(request, "dashboard.html", {"user_name": request.session["user_name"]})
+    return HttpResponse("Invalid credentials!")
+    return render(request, "login.html")
+    
+
+def navbar(request):
+    return render(request, "navbar.html")

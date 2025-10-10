@@ -1,45 +1,101 @@
-{% comment %} register.html {% endcomment %}
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register Page</title>
-  <link rel="stylesheet" href="{% static 'css/registerCss.css' %}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account</title>
+    <link rel="stylesheet" href="{% static 'css/registerCss.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
 <body>
-  <div class="container">
-  
-    <div class="left">
-      <div class="brand">
-        <div class="logo"></div>
-        <h1>Edify</h1>
-      </div>
-      <h2>Hello, <br><span>Welcome!</span></h2>
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam purus urna, lobortis ac risus ac, congue sollicitudin mauris.</p>
+    <div class="container">
+        <div class="welcome">
+            <div class="logo-edify">
+                <div class="logo-box">
+                    <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
+                </div>
+                <h1>Edify</h1>
+            </div>
+            <h3>Hello, Welcome!</h3>
+            <p>
+                Join the network of Filipino educators to share resources, collaborate, and access professional development materials.
+            </p>
+        </div>
+ 
+        <div class="login-form">
+            <h2>Create Account</h2>
+            <form method="post">
+                {% csrf_token %}
+ 
+                <div class="name-fields">
+                    <div class="field">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="first_name" placeholder="Enter your first name" required>
+                    </div>
+                    <div class="field">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="last_name" placeholder="Enter your last name" required>
+                    </div>
+                </div>
+ 
+                <label for="email">Email Address</label>
+                <input type="text" id="email" name="email" placeholder="Enter your email address" required>
+ 
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" placeholder="Enter password" required>
+                    <i class="fa-solid fa-eye" id="togglePassword"></i>
+                </div>
+ 
+                <label for="confirmPassword">Confirm Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="confirmPassword" name="confirm_password" placeholder="Confirm password" required>
+                    <i class="fa-solid fa-eye" id="toggleConfirmPassword"></i>
+                </div>
+ 
+                <div class="terms">
+                    <input type="checkbox" id="terms" name="terms_agree" required>
+                    <label for="terms">
+                        I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                    </label>
+                </div>
+ 
+                <button type="submit" class="btn">Create Account</button>
+ 
+                <p class="signup-text">Already have an account? <a href="{% url 'login' %}">Login</a></p>
+            </form>
+        </div>
     </div>
+ 
+   <script>
+    // Password field toggle
+    const togglePassword = document.getElementById("togglePassword");
+    const passwordInput = document.getElementById("password");
 
-    
-    <div class="right">
-      <h2>Create Account</h2>
-      <form id="registerForm" action="/register/" method="POST">
-          {% csrf_token %}
-          <div class="row">
-            <input type="text" name="first_name" placeholder="First Name" required>
-            <input type="text" name="last_name" placeholder="Last Name" required>
-          </div>
-
+    // Confirm password toggle
+    const toggleConfirm = document.getElementById("toggleConfirmPassword");
+    const confirmInput = document.getElementById("confirmPassword");
           <input type="email" name="email" placeholder="Email Address" value="{{ email|default:'' }}" required>
           {% if error == "Account already exists!" %}
             <p style="color: red; font-size: 14px; margin-top: 5px;">{{ error }}</p>
           {% endif %}
+    // Main password toggle
+    togglePassword.addEventListener("click", () => {
+        const isPassword = passwordInput.type === "password";
+        passwordInput.type = isPassword ? "text" : "password";
+        togglePassword.classList.toggle("fa-eye");
+        togglePassword.classList.toggle("fa-eye-slash");
+    });
 
-
-          <div class="password-field">
-            <input type="password" name="password" id="password" placeholder="Password" required>
-            <span class="toggle" onclick="togglePassword('password')">👁</span>
-          </div>
+    // Confirm password toggle
+    toggleConfirm.addEventListener("click", () => {
+        const isPassword = confirmInput.type === "password";
+        confirmInput.type = isPassword ? "text" : "password";
+        toggleConfirm.classList.toggle("fa-eye");
+        toggleConfirm.classList.toggle("fa-eye-slash");
+    });
+</script>
 
           <div class="password-field">
             <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm Password" required>
