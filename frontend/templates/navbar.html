@@ -50,7 +50,7 @@
             </ul>
 
             <ul class="menu bottom-menu"> 
-                <li>
+                    <li onclick="window.location.href='{% url 'logout' %}'">
                     <i class="fa-solid fa-right-from-bracket icon"></i>
                     <span class="text">Sign out</span>
                 </li>
@@ -63,5 +63,8 @@
     </div>
 
     <script src="{% static 'js/navbar.js' %}"></script>
+    {% if success %}
+  <script>alert("{{ success }}");</script>
+    {% endif %}
 </body>
 </html>
