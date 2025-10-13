@@ -2,10 +2,10 @@ Edify: A web-based platform for Filipino educators to share resources,
 collaborate, and access professional development materials.
 
 Tech Stack:
-  Frontend: HTML,CSS,JS
-  Backend: Django
-  Database: Supabase
-  Version Control: Github
+Frontend: HTML,CSS,JS
+Backend: Django
+Database: Supabase
+Version Control: Github
 
 Setup & run instructions:
 1. Clone the repository
