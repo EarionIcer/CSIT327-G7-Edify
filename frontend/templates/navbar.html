@@ -20,41 +20,57 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <div class="logo-box">
-                     
+                        <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
                     </div> 
                     <h1>Edify</h1>
                 </div>
             </div>
 
             <ul class="menu main-menu">
-                <li class="active">
+                <li class="{% if request.resolver_match.url_name == 'overview' %}active{% endif %}">
+                    <a href="{% url 'overview' %}">
                     <i class="fa-solid fa-table-columns icon"></i>
                     <span class="text">Overview</span>
+                    </a>
                 </li>
-                <li>
+
+                <li class="{% if request.resolver_match.url_name == 'uploads' %}active{% endif %}">
+                    <a href="{% url 'uploads' %}">
                     <i class="fa-solid fa-upload icon"></i>
                     <span class="text">Uploads</span>
+                    </a>
                 </li>
-                <li>
+
+                <li class="{% if request.resolver_match.url_name == 'favorites' %}active{% endif %}">
+                    <a href="{% url 'favorites' %}">
                     <i class="fa-solid fa-heart icon"></i>
                     <span class="text">Favorites</span>
+                    </a>
                 </li>
-                <li>
+
+                <li class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                    <a href="{% url 'profile' %}">
                     <i class="fa-solid fa-user icon"></i>
                     <span class="text">Profile</span>
+                    </a>
                 </li>
-                <li>
+
+                <li class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">
+                    <a href="{% url 'about' %}">
                     <i class="fa-solid fa-circle-info icon"></i>
                     <span class="text">About</span>
+                    </a>
                 </li>
             </ul>
 
-            <ul class="menu bottom-menu"> 
-                    <li onclick="window.location.href='{% url 'logout' %}'">
-                    <i class="fa-solid fa-right-from-bracket icon"></i>
-                    <span class="text">Sign out</span>
-                </li>
-            </ul>
+<ul class="menu bottom-menu">
+  <li>
+    <a href="{% url 'logout' %}">
+      <i class="fa-solid fa-right-from-bracket icon"></i>
+      <span class="text">Sign out</span>
+    </a>
+  </li>
+</ul>
         </aside>
 
         <section class="content">

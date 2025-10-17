@@ -5,7 +5,8 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from supabase import create_client
-from django.conf import settings
+from django.conf import settings    
+
  
 supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
@@ -46,57 +47,6 @@ supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
 #     return render(request, "register.html")
 
-def register(request):
-    if request.method == "POST":
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        confirm_password = request.POST.get("confirm_password")
-
-        # Validation
-        if password != confirm_password:
-            return render(request, "register.html", {"error": "Passwords do not match!"})
-
-        existing_user = supabase.table("users").select("*").eq("email", email).execute()
-        if existing_user.data:
-            return render(request, "register.html", {"error": "Email already used!"})
-
-        existing_name = supabase.table("users").select("*").eq("first_name", first_name).eq("last_name", last_name).execute()
-        if existing_name.data:
-            return render(request, "register.html", {"error": "Name already exists!"})
-
-        # Save to Supabase
-        supabase.table("users").insert({
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            "password": password
-        }).execute()
-
-        # Auto login after registration
-        request.session["user"] = email
-        request.session["success_message"] = "Account successfully created!"
-        return redirect("navbar")
-
-    return render(request, "register.html")
-
-
-def login_view(request):
-    if request.method == "POST":
-        email = request.POST.get("emailAd")
-        password = request.POST.get("password")
-
-        response = supabase.table("users").select("*").eq("email", email).execute()
-
-        if response.data and response.data[0]["password"] == password:
-            request.session["user"] = email
-            request.session["success_message"] = "Successfully logged in!"
-            return redirect("navbar")
-        else:
-            return render(request, "login.html", {"error": "Invalid credentials!"})
-
-    return render(request, "login.html")
 
 # def login_view(request):
 #     if request.method == "POST":
@@ -124,6 +74,58 @@ def login_view(request):
 #     success_message = request.session.pop("success_message", None)
 #     return render(request, "navbar.html", {"success": success_message})
 
+
+
+def register(request):
+    if request.method == "POST":
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
+
+        # ✅ 1. Password match validation
+        if password != confirm_password:
+            return render(request, "register.html", {"error": "Passwords do not match!"})
+
+        # ✅ 2. Email already exists check
+        existing_user = supabase.table("users").select("*").eq("email", email).execute()
+        if existing_user.data:
+            return render(request, "register.html", {"error": "Email already in use!"})
+
+        # ✅ 3. Save new user in Supabase
+        supabase.table("users").insert({
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "password": password
+        }).execute()
+
+        # ✅ 4. Auto-login after registration + success message
+        request.session["user"] = email
+        request.session["success_message"] = "Account successfully created!"
+        return redirect("overview")
+
+    return render(request, "register.html")
+
+
+def login_view(request):
+    if request.method == "POST":
+        email = request.POST.get("emailAd")
+        password = request.POST.get("password")
+
+        response = supabase.table("users").select("*").eq("email", email).execute()
+
+        if response.data and response.data[0]["password"] == password:
+            request.session["user"] = email
+            request.session["success_message"] = "Successfully logged in!"
+            return redirect("overview") #navbar
+        else:
+            return render(request, "login.html", {"error": "Invalid credentials!"})
+
+    return render(request, "login.html")
+
+
 def navbar(request):
     user = request.session.get("user")
     if not user:
@@ -132,7 +134,14 @@ def navbar(request):
     success_message = request.session.pop("success_message", None)
     return render(request, "navbar.html", {"success": success_message})
 
+def overview(request):
+    return render(request, "overview.html")
 
+def uploads(request):
+    return render(request, "uploads.html")
+
+def favorites(request):
+    return render(request, "favorites.html")
 
 def logout_view(request):
     request.session.flush()
