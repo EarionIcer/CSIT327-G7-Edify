@@ -1,0 +1,106 @@
+{% comment %} {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edify</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{% static 'css/navbarCss.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+  <div class="page-container">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <div class="logo-box">
+            <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
+          </div>
+          <h1>Edify</h1>
+        </div>
+      </div>
+
+      <ul class="menu main-menu">
+        <li><a href="{% url 'overview' %}"><i class="fa-solid fa-table-columns"></i> Overview</a></li>
+        <li><a href="{% url 'uploads' %}"><i class="fa-solid fa-upload"></i> Uploads</a></li>
+        <li><a href="{% url 'favorites' %}"><i class="fa-solid fa-heart"></i> Favorites</a></li>
+      </ul>
+
+      <ul class="menu bottom-menu">
+        <li><a href="#"><i class="fa-solid fa-right-from-bracket"></i> Sign out</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html> {% endcomment %}
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edify</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ✅ Add your global base CSS here -->
+  <link rel="stylesheet" href="{% static 'css/baseCss.css' %}">
+
+  <!-- ✅ Then your navbar/sidebar styles -->
+  <link rel="stylesheet" href="{% static 'css/navbarCss.css' %}">
+
+  <!-- ✅ FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+  <div class="page-container">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <div class="logo-box">
+            <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
+          </div>
+          <h1>Edify</h1>
+        </div>
+      </div>
+
+      <ul class="menu main-menu">
+        <li><a href="{% url 'overview' %}"><i class="fa-solid fa-table-columns"></i> Overview</a></li>
+        <li><a href="{% url 'uploads' %}"><i class="fa-solid fa-upload"></i> Uploads</a></li>
+        <li><a href="{% url 'favorites' %}"><i class="fa-solid fa-heart"></i> Favorites</a></li>
+      </ul>
+
+      <ul class="menu bottom-menu">
+        <li><a href="#"><i class="fa-solid fa-right-from-bracket"></i> Sign out</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- ✅ Optional toast notification (for success messages) -->
+  {% if success %}
+  <div class="toast" id="toast">
+    {{ success }}
+  </div>
+
+  <script>
+    const toast = document.getElementById("toast");
+    if (toast) {
+      toast.style.display = "block";
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.remove(), 500);
+      }, 2500);
+    }
+  </script>

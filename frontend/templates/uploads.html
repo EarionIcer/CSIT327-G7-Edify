@@ -1,0 +1,79 @@
+{% comment %} {% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/uploadsCss.css' %}">
+
+<div class="uploads-container">
+  <div class="header">
+    <h1>Uploads</h1>
+    <button class="upload-btn"><i class="fa-solid fa-plus"></i> Upload New</button>
+  </div>
+
+  <div class="uploads-grid">
+    <div class="upload-card">
+      <h3>Mathematics - Grade 7</h3>
+      <p>Lesson Plan: Algebraic Expressions</p>
+      <div class="card-actions">
+        <button><i class="fa-solid fa-eye"></i> View</button>
+        <button><i class="fa-solid fa-trash"></i> Delete</button>
+      </div>
+    </div>
+
+    <div class="upload-card">
+      <h3>Science - Grade 8</h3>
+      <p>Module: Earth and Space</p>
+      <div class="card-actions">
+        <button><i class="fa-solid fa-eye"></i> View</button>
+        <button><i class="fa-solid fa-trash"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% endcomment %}
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/uploadsCss.css' %}">
+
+<div class="page">
+  <div class="header">
+    <h1>My Uploads</h1>
+    <p>Upload and manage your educational content here. You can share lessons, modules, or activities with other educators.</p>
+  </div>
+
+  <div class="uploads-body">
+    <button class="upload-btn">Upload File</button>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>File Name</th>
+            <th>File Size</th>
+            <th>File Type</th>
+            <th>Subject</th>
+            <th>Grade/Year Level</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Rizal Quiz #1 Questions</td>
+            <td>2.1MB</td>
+            <td>PNG</td>
+            <td>Rizal</td>
+            <td>College 1st - 4th</td>
+            <td>
+              <a href="#" class="delete">Delete</a>
+              <a href="#" class="edit">Edit</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
