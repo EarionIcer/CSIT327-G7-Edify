@@ -2,78 +2,86 @@
 # views.py 
 
 
-import bcrypt
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from supabase import create_client
 from django.conf import settings
+from .models import CustomUser
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
+import bcrypt
  
 supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
-# views.py
 def register(request):
     if request.method == "POST":
-        first_name = request.POST["first_name"]
-        last_name = request.POST["last_name"]
-        email = request.POST["email"]
-        password = request.POST["password"]
-        confirm_password = request.POST["confirm_password"]
+        # You can process form data here
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
 
-        # Check password match
         if password != confirm_password:
-            return render(request, "authentication/register.html", {"error": "Passwords do not match!"})
+            return render(request, "register.html", {
+                "error": "Passwords do not match!"
+            })
 
-        # Check if email already exists
-        existing_user = supabase.table("users").select("*").eq("email", email).execute()
-        if existing_user.data:  # If any record is found
-            return render(request, "authentication/register.html", {"error": "Account already exists!", "email": email})
+        # TODO: Save user to DB (using Django User model or custom model)
+         # Check if user already exists
+        if CustomUser.objects.filter(email=email).exists():
+            return render(request, "register.html", {"error": "Email already registered!"})
 
-        # Hash password before saving
-        hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        # ✅ Validate password using Django’s built-in password validators
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            # e.messages is a list; show the first or join them all
+            return render(request, "register.html", {
+                "error": " ".join(e.messages)
+            })
 
-        # Insert into Supabase table
+        # ✅ Hash password using bcrypt
+        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Save to local Django DB
+        CustomUser.objects.create(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            password=hashed_pw
+        )
+
+        # (Optional) Also save to Supabase
         supabase.table("users").insert({
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
-            "password": hashed_pw
+            "password": hashed_pw  # Hashed version, not plain text
         }).execute()
 
-        return redirect("/login/")  # after successful signup
+        return render(request, "register.html", {
+            "success": "Account created successfully!"
+        })
 
-    return render(request, "authentication/register.html")
+    return render(request, "register.html")
+
 
 def login_view(request):
     if request.method == "POST":
-        email = request.POST["email"]
+        username = request.POST["username"]
         password = request.POST["password"]
-
-        # Check if user exists
-        result = supabase.table("users").select("*").eq("email", email).execute()
-
-        if not result.data:  # No account with this email
-            return render(request, "authentication/login.html", {"error": "Invalid email or password."})
-
-        user = result.data[0]
-
-        # Check hashed password
-        if bcrypt.checkpw(password.encode("utf-8"), user["password"].encode("utf-8")):
-            # Store user in session
-            request.session["user_id"] = user["id"]
-            request.session["user_name"] = f"{user['first_name']} {user['last_name']}"
-            return redirect("/dashboard/")  # change to your landing page
+ 
+        response = supabase.table("users").select("*").eq("username", username).execute()
+ 
+        if response.data and response.data[0]["password"] == password:
+            return HttpResponse("Login successful!")
         else:
-            return render(request, "authentication/login.html", {"error": "Invalid email or password."})
-
-    return render(request, "authentication/login.html")
-
-def dashboard(request):
-    if "user_id" not in request.session:
-        return redirect("/login/")
-    return render(request, "dashboard.html", {"user_name": request.session["user_name"]})
-    return HttpResponse("Invalid credentials!")
+            return HttpResponse("Invalid credentials!")
+ 
     return render(request, "login.html")
     
 
 def navbar(request):
     return render(request, "navbar.html")
+
