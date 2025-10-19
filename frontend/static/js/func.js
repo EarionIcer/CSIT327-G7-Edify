@@ -92,40 +92,35 @@
 // });
 
 
-function togglePassword(id) {
-  const input = document.getElementById(id);
-  if (input.type === "password") {
-    input.type = "text";
-  } else {
-    input.type = "password";
-  }
-}
+// static/js/func.js
 
 document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("registerForm");
-  const errorMsg = document.getElementById("error-message");
+  const form = document.querySelector("form");
+  const errorMsg = document.createElement("p");
+  errorMsg.style.color = "red";
+  errorMsg.style.textAlign = "center";
+  form.prepend(errorMsg);
 
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      const email = document.getElementById("email").value.trim();
-      const pass = document.getElementById("password").value.trim();
-      const confirmPass = document.getElementById("confirm_password").value.trim();
+  form.addEventListener("submit", (e) => {
+    const email = document.getElementById("email").value.trim();
+    const pass = document.getElementById("password").value.trim();
+    const confirm = document.getElementById("confirmPassword")?.value.trim();
 
-      errorMsg.textContent = "";
+    errorMsg.textContent = "";
 
-      // Gmail validation
-      const gmailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-      if (!gmailPattern.test(email)) {
-        e.preventDefault();
-        errorMsg.textContent = "Please enter a valid Gmail address.";
-        return;
-      }
+    // Gmail validation
+    const gmailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    if (!gmailPattern.test(email)) {
+      e.preventDefault();
+      errorMsg.textContent = "Please enter a valid Gmail address.";
+      return;
+    }
 
-      // Password match check
-      if (pass !== confirmPass) {
-        e.preventDefault();
-        errorMsg.textContent = "Passwords do not match.";
-      }
-    });
-  }
+    // Confirm password validation (only if field exists)
+    if (confirm !== undefined && pass !== confirm) {
+      e.preventDefault();
+      errorMsg.textContent = "Passwords do not match.";
+    }
+  });
 });
+

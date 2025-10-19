@@ -109,21 +109,22 @@ def register(request):
     return render(request, "register.html")
 
 
-def login_view(request):
-    if request.method == "POST":
-        email = request.POST.get("emailAd")
-        password = request.POST.get("password")
-
-        response = supabase.table("users").select("*").eq("email", email).execute()
-
-        if response.data and response.data[0]["password"] == password:
-            request.session["user"] = email
-            request.session["success_message"] = "Successfully logged in!"
-            return redirect("overview") #navbar
-        else:
-            return render(request, "login.html", {"error": "Invalid credentials!"})
-
-    return render(request, "login.html")
+def login_view(request): 
+    if request.method == "POST": 
+        email = request.POST.get("emailAd") 
+        password = request.POST.get("password") 
+ 
+        response = supabase.table("users").select("*").eq("email", 
+email).execute() 
+ 
+        if response.data and response.data[0]["password"] == password: 
+            request.session["user"] = email 
+            request.session["success_message"] = "Successfully logged in!" 
+            return redirect("overview") #navbar 
+        else: 
+            return render(request, "login.html", {"error": "Invalid credentials!"}) 
+ 
+    return render(request, "login.html") 
 
 
 def navbar(request):

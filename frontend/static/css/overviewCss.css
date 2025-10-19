@@ -20,3 +20,23 @@
   list-style: disc;
   margin-left: 25px;
 }
+
+.success-message {
+  background-color: #d9fdd3;
+  color: #333;
+  padding: 12px 20px;
+  border-radius: 8px;
+  text-align: center;
+  margin: 15px;
+  transition: opacity 0.4s ease;
+}
+
+.success-message.fade-out {
+  opacity: 0;
+}
+
+/* Optional hover class for sidebar movement */
+.menu li.hovered {
+  transform: translateX(5px);
+  transition: transform 0.3s ease;
+}

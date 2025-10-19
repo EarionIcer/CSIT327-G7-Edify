@@ -120,18 +120,24 @@ body {
  
 /* Password wrapper for eye icon */
 .password-wrapper {
-    position: relative;
+  position: relative;
 }
- 
+
 .password-wrapper i {
-    position: absolute;
-    top: 40%;
-    right: 10px;
-    transform: translateY(-50%);
-    cursor: pointer;
-    color: #888;
-    font-size: 16px;
+  position: absolute;
+  top: 40%;
+  right: 10px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #888;
+  font-size: 16px;
+  transition: color 0.2s;
 }
+
+.password-wrapper i:hover {
+  color: #667EEA;
+}
+
  
 /* Terms */
 .terms {
@@ -208,4 +214,56 @@ body {
     .name-fields {
         flex-direction: column;
     }
+}
+
+/* ===== Password Modal Styles ===== */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    margin: 15% auto;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content p {
+    color: #333;
+    font-size: 14px;
+}
+
+.modal-content #passwordMessage {
+    color: #d9534f; /* Bootstrap red */
+    font-weight: 600;
+    font-size: 16px;
+}
+
+#closeModal {
+    margin-top: 10px;
+    padding: 6px 12px;
+    border: none;
+    background: #007bff;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+#closeModal:hover {
+    background: #0056b3;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
