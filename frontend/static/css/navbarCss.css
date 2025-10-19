@@ -1,70 +1,240 @@
-/* ---- Sidebar menu items ---- */
+/* 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+
+.page-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f6fa;
+}
+
+
+.sidebar {
+  width: 250px;
+  background-color: #1e1e2f;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 20px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  transition: all 0.3s ease;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.25);
+}
+
+
+.sidebar-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.logo-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.brand-name {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+
 .menu {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  list-style: none;
+  padding: 0 15px;
 }
 
 .menu li {
-    margin: 12px 10px;
-    border-radius: 10px;
-    transition: transform 180ms ease, background-color 220ms ease, color 180ms ease, box-shadow 220ms ease;
-    will-change: transform, background-color, color;
+  margin-bottom: 10px;
 }
 
-/* make anchor fill the li so hover/active affect whole box */
+
+.menu a {
+  text-decoration: none;
+  color: #cfd2da;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+
+.menu a:hover {
+  background-color: #2f2f47;
+  color: #ffffff;
+  transform: translateX(5px);
+}
+
+
+.menu a.active {
+  background-color: #ffffff;
+  color: #1e1e2f;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #4f46e5;
+}
+
+
+.menu a i {
+  font-size: 1.2rem;
+}
+
+
+.content {
+  margin-left: 250px;
+  padding: 30px;
+  flex: 1;
+  background-color: #f5f6fa;
+  transition: all 0.3s ease;
+}
+
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 200px;
+  }
+
+  .content {
+    margin-left: 200px;
+  }
+
+  .logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .brand-name {
+    font-size: 1.3rem;
+  }
+
+  .menu a {
+    font-size: 0.9rem;
+  }
+}
+
+
+.sidebar,
+.menu a {
+  transition: all 0.3s ease;
+}  */
+
+/* === Global Reset === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+}
+
+.page-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #4b5e97;
+    color: white;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    padding-top: 20px;
+    transition: all 0.3s ease;
+}
+
+.sidebar-header .logo {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.logo-box {
+    display: inline-block;
+}
+
+.logo h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+}
+
+.menu {
+    list-style: none;
+    padding: 0 15px;
+}
+
+.menu li {
+    margin-bottom: 10px;
+}
+
 .menu li a {
+    text-decoration: none;
+    color: #cfd2da;
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
-    color: rgba(255,255,255,0.95);
-    text-decoration: none;
+    padding: 12px 18px;
     border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
-/* icon consistent size */
-.menu li a .icon {
-    font-size: 18px;
-    width: 26px;
-    display: inline-flex;
-    justify-content: center;
+.menu li a:hover {
+    background-color: #2f2f47;
+    color: #ffffff;
+    transform: translateX(5px);
 }
 
-/* subtle hover "lift" + background tint */
-.menu li:hover {
-    transform: translateX(6px); /* movement on hover */
-}
-
-/* Hover background color for the anchor area (keeps icons visible) */
-.menu li:hover a {
-    background-color: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,1); /* keep text white on hover */
-    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-}
-
-/* Active item: white rounded rectangle with dark text */
 .menu li.active a {
     background-color: #ffffff;
-    color: #333333;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-    transform: none; /* keep active stationary */
+    color: #1e1e2f;
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 #4f46e5;
 }
 
-/* Make icons also change color when active */
-.menu li.active a .icon,
-.menu li.active a i {
-    color: #333333;
+.menu .icon {
+    font-size: 1.2rem;
 }
 
-/* Ensure bottom menu sits at bottom */
 .bottom-menu {
     margin-top: auto;
     padding-bottom: 20px;
 }
 
-/* Small screen adjustments */
+.content {
+    margin-left: 250px;
+    padding: 30px;
+    flex: 1;
+    background-color: #ffffff;
+    min-height: 100vh;
+}
+
 @media (max-width: 768px) {
-    .menu li a { padding: 10px 12px; }
-    .menu li:hover { transform: none; } /* disable translate on small screens if needed */
+    .sidebar {
+        width: 60px;
+    }
+    .menu li a .text {
+        display: none;
+    }
+    .content {
+        margin-left: 60px;
+    }
 }

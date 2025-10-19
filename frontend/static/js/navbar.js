@@ -1,15 +1,21 @@
-document.addEventListener("DOMContentLoaded", () => {
-    // Selects all menu items for handling clicks
-    const menuItems = document.querySelectorAll(".menu li");
+// document.addEventListener("DOMContentLoaded", () => {
+//   // Highlight active page (already handled by Django, this just animates)
+//   const links = document.querySelectorAll(".menu li a");
+//   links.forEach((link) => {
+//     link.addEventListener("click", () => {
+//       links.forEach((l) => l.parentElement.classList.remove("active"));
+//       link.parentElement.classList.add("active");
+//     });
+//   });
+// });
 
-    // Loop through each menu item to attach a click listener
-    menuItems.forEach((item) => {
-        item.addEventListener("click", () => {
-            // 1. Remove 'active' class from all list items
-            document.querySelectorAll(".menu li").forEach((li) => li.classList.remove("active"));
-            
-            // 2. Add 'active' class to the clicked item
-            item.classList.add("active");
-        });
+document.addEventListener("DOMContentLoaded", () => {
+  // Highlight active page (already handled by Django, this just animates)
+  const links = document.querySelectorAll(".menu li a");
+  links.forEach((link) => {
+    link.addEventListener("click", () => {
+      links.forEach((l) => l.parentElement.classList.remove("active"));
+      link.parentElement.classList.add("active");
     });
+  });
 });

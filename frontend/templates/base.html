@@ -5,38 +5,40 @@
   <meta charset="UTF-8">
   <title>Edify</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="{% static 'css/navbarCss.css' %}">
+  <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
+
 <body>
   <div class="page-container">
-    <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar">
+  <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="logo">
-          <div class="logo-box">
-            <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
-          </div>
-          <h1>Edify</h1>
+        <div class="logo-box">
+          <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo" class="logo">
+          <h2 class="brand-name">Edify</h2>
         </div>
       </div>
+    <ul class="menu">
+      <li class="active"><a href="{% url 'overview' %}"><i class="fa-solid fa-table-columns"></i> Overview</a></li>
+      <li><a href="{% url 'uploads' %}"><i class="fa-solid fa-upload"></i> Uploads</a></li>
+      <li><a href="{% url 'favorites' %}"><i class="fa-solid fa-heart"></i> Favorites</a></li>
+      <li><a href="{% url 'profile' %}"><i class="fa-solid fa-user"></i> Profile</a></li>
+      <li><a href="{% url 'about' %}"><i class="fa-solid fa-circle-info"></i> About</a></li>
+    </ul>
 
-      <ul class="menu main-menu">
-        <li><a href="{% url 'overview' %}"><i class="fa-solid fa-table-columns"></i> Overview</a></li>
-        <li><a href="{% url 'uploads' %}"><i class="fa-solid fa-upload"></i> Uploads</a></li>
-        <li><a href="{% url 'favorites' %}"><i class="fa-solid fa-heart"></i> Favorites</a></li>
-      </ul>
+    <div class="signout">
+      <a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Sign out</a>
+    </div>
+  </aside>
 
-      <ul class="menu bottom-menu">
-        <li><a href="#"><i class="fa-solid fa-right-from-bracket"></i> Sign out</a></li>
-      </ul>
-    </aside>
+  <main class="content">
+    <h1>Overview</h1>
+    <p>Welcome to Edify — a collaborative educational platform where teachers can share, upload, and favorite valuable learning materials.</p>
+  </main>
+</div>
 
-    <!-- Main Content -->
-    <main class="content">
-      {% block content %}{% endblock %}
-    </main>
-  </div>
+
+  <script src="{% static 'js/navbar.js' %}"></script>
 </body>
 </html> {% endcomment %}
 
@@ -44,63 +46,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Edify</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- ✅ Add your global base CSS here -->
-  <link rel="stylesheet" href="{% static 'css/baseCss.css' %}">
-
-  <!-- ✅ Then your navbar/sidebar styles -->
-  <link rel="stylesheet" href="{% static 'css/navbarCss.css' %}">
-
-  <!-- ✅ FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Edify{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/navbarCss.css' %}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    {% block extra_css %}{% endblock %}
 </head>
-
 <body>
-  <div class="page-container">
-    <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <div class="logo-box">
-            <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
-          </div>
-          <h1>Edify</h1>
-        </div>
-      </div>
+    <div class="page-container">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-box">
+                        {% comment %} <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo"> {% endcomment %}
+                    </div>
+                    <h1>Edify</h1>
+                </div>
+            </div>
 
-      <ul class="menu main-menu">
-        <li><a href="{% url 'overview' %}"><i class="fa-solid fa-table-columns"></i> Overview</a></li>
-        <li><a href="{% url 'uploads' %}"><i class="fa-solid fa-upload"></i> Uploads</a></li>
-        <li><a href="{% url 'favorites' %}"><i class="fa-solid fa-heart"></i> Favorites</a></li>
-      </ul>
+            <ul class="menu main-menu">
+                <li class="{% if request.path == '/' or request.path == '/overview/' %}active{% endif %}" id="overviewBtn">
+                    <a href="{% url 'overview' %}"><i class="fa-solid fa-table-columns icon"></i><span class="text">Overview</span></a>
+                </li>
+                <li class="{% if request.path == '/uploads/' %}active{% endif %}" id="uploadsBtn">
+                    <a href="{% url 'uploads' %}"><i class="fa-solid fa-upload icon"></i><span class="text">Uploads</span></a>
+                </li>
+                <li class="{% if request.path == '/favorites/' %}active{% endif %}" id="favoritesBtn">
+                    <a href="{% url 'favorites' %}"><i class="fa-solid fa-heart icon"></i><span class="text">Favorites</span></a>
+                </li>
+                <li class="{% if request.path == '/profile/' %}active{% endif %}">
+                    <a href="{% url 'profile' %}"><i class="fa-solid fa-user icon"></i><span class="text">Profile</span></a>
+                </li>
+                <li class="{% if request.path == '/about/' %}active{% endif %}">
+                    <a href="{% url 'about' %}"><i class="fa-solid fa-circle-info icon"></i><span class="text">About</span></a>
+                </li>
+            </ul>
 
-      <ul class="menu bottom-menu">
-        <li><a href="#"><i class="fa-solid fa-right-from-bracket"></i> Sign out</a></li>
-      </ul>
-    </aside>
+            <ul class="menu bottom-menu"> 
+                <li onclick="window.location.href='{% url 'logout' %}'">
+                    <a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket icon"></i><span class="text">Sign out</span></a>
+                </li>
+            </ul>
+        </aside>
 
-    <!-- Main Content -->
-    <main class="content">
-      {% block content %}{% endblock %}
-    </main>
-  </div>
+        <!-- Main Content -->
+        <section class="content" id="mainContent">
+            {% block content %}{% endblock %}
+        </section>
+    </div>
 
-  <!-- ✅ Optional toast notification (for success messages) -->
-  {% if success %}
-  <div class="toast" id="toast">
-    {{ success }}
-  </div>
-
-  <script>
-    const toast = document.getElementById("toast");
-    if (toast) {
-      toast.style.display = "block";
-      setTimeout(() => {
-        toast.style.opacity = "0";
-        setTimeout(() => toast.remove(), 500);
-      }, 2500);
-    }
-  </script>
+    <script src="{% static 'js/overview.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
