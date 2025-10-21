@@ -1,4 +1,4 @@
-{% comment %} {% load static %}
+<!-- {% comment %} {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,7 +40,7 @@
 
   <script src="{% static 'js/navbar.js' %}"></script>
 </body>
-</html> {% endcomment %}
+</html> {% endcomment %} -->
 
 {% load static %}
 <!DOCTYPE html>
@@ -50,47 +50,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Edify{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/navbarCss.css' %}" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     {% block extra_css %}{% endblock %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    
 </head>
 <body>
     <div class="page-container">
         <!-- Sidebar -->
         <aside id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <div class="logo-box">
-                        {% comment %} <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo"> {% endcomment %}
-                    </div>
-                    <h1>Edify</h1>
-                </div>
-            </div>
+          <div class="sidebar-header">
+              <div class="logo-box">
+                  <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo" class="logo-img">
+              </div>
+              <h1>Edify</h1>
+          </div>
 
-            <ul class="menu main-menu">
-                <li class="{% if request.path == '/' or request.path == '/overview/' %}active{% endif %}" id="overviewBtn">
-                    <a href="{% url 'overview' %}"><i class="fa-solid fa-table-columns icon"></i><span class="text">Overview</span></a>
-                </li>
-                <li class="{% if request.path == '/uploads/' %}active{% endif %}" id="uploadsBtn">
-                    <a href="{% url 'uploads' %}"><i class="fa-solid fa-upload icon"></i><span class="text">Uploads</span></a>
-                </li>
-                <li class="{% if request.path == '/favorites/' %}active{% endif %}" id="favoritesBtn">
-                    <a href="{% url 'favorites' %}"><i class="fa-solid fa-heart icon"></i><span class="text">Favorites</span></a>
-                </li>
-                <li class="{% if request.path == '/profile/' %}active{% endif %}">
-                    <a href="{% url 'profile' %}"><i class="fa-solid fa-user icon"></i><span class="text">Profile</span></a>
-                </li>
-                <li class="{% if request.path == '/about/' %}active{% endif %}">
-                    <a href="{% url 'about' %}"><i class="fa-solid fa-circle-info icon"></i><span class="text">About</span></a>
-                </li>
-            </ul>
+          <ul class="menu main-menu">
+              <li class="{% if request.path == '/' or request.path == '/overview/' %}active{% endif %}" id="overviewBtn">
+                  <a href="{% url 'overview' %}">
+                      <i class="fa-solid fa-table-columns icon"></i>
+                      <span class="text">Overview</span>
+                  </a>
+              </li>
+              <li class="{% if request.path == '/uploads/' %}active{% endif %}" id="uploadsBtn">
+                  <a href="{% url 'uploads' %}">
+                      <i class="fa-solid fa-upload icon"></i>
+                      <span class="text">Uploads</span>
+                  </a>
+              </li>
+              <li class="{% if request.path == '/favorites/' %}active{% endif %}" id="favoritesBtn">
+                  <a href="{% url 'favorites' %}">
+                      <i class="fa-solid fa-heart icon"></i>
+                      <span class="text">Favorites</span>
+                  </a>
+              </li>
+              <li class="{% if request.path == '/profile/' %}active{% endif %}">
+                  <a href="{% url 'profiled' %}">
+                      <i class="fa-solid fa-user icon"></i>
+                      <span class="text">Profile</span>
+                  </a>
+              </li>
+              <li class="{% if request.path == '/about/' %}active{% endif %}">
+                  <a href="{% url 'about' %}">
+                      <i class="fa-solid fa-circle-info icon"></i>
+                      <span class="text">About</span>
+                  </a>
+              </li>
+          </ul>
 
-            <ul class="menu bottom-menu"> 
-                <li onclick="window.location.href='{% url 'logout' %}'">
-                    <a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket icon"></i><span class="text">Sign out</span></a>
-                </li>
-            </ul>
-        </aside>
-
+          <ul class="menu bottom-menu">
+              <li onclick="window.location.href='{% url 'logout' %}'">
+                  <a href="{% url 'logout' %}">
+                      <i class="fa-solid fa-right-from-bracket icon"></i>
+                      <span class="text">Sign out</span>
+                  </a>
+              </li>
+          </ul>
+      </aside>
         <!-- Main Content -->
         <section class="content" id="mainContent">
             {% block content %}{% endblock %}

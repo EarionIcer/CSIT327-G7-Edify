@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add Files - Edify{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/addfilesCss.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="addfiles-container">
+  <div class="header">
+    <h1>Add New File</h1>
+    <p>Provide file details and upload your learning materials here.</p>
+
+    <!-- Back button -->
+    <a href="{% url 'uploads' %}" class="back-btn">
+      <i class="fa-solid fa-arrow-left"></i> Back to My Uploads
+    </a>
+  </div>
+
+  <div class="form-body">
+    <!-- Left section -->
+    <div class="left-section">
+      <label for="title">Title</label>
+      <input type="text" id="title" placeholder="Enter file title" />
+
+      <label for="description">Description</label>
+      <textarea id="description" rows="6" placeholder="Enter description here..."></textarea>
+
+      <div class="inline-fields">
+        <div class="field">
+          <label for="subject">Subject</label>
+          <input type="text" id="subject" placeholder="Enter subject" />
+        </div>
+
+        <div class="field">
+          <label for="grade">Grade / Year Level</label>
+          <input type="text" id="grade" placeholder="Enter grade or year" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Right section -->
+    <div class="right-section">
+      <div class="upload-box" id="uploadArea">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <p>Click here or drag and drop your file</p>
+        <input type="file" id="fileInput" hidden />
+      </div>
+
+      <button class="upload-btn" id="uploadBtn">
+        <i class="fa-solid fa-upload"></i> Upload File
+      </button>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  const uploadBox = document.getElementById("uploadArea");
+  const fileInput = document.getElementById("fileInput");
+
+  // Create elements for text and file display
+  const defaultText = document.createElement("p");
+  defaultText.textContent = "Drag & Drop or Click to Upload";
+  defaultText.style.color = "#777";
+  defaultText.style.fontWeight = "500";
+  defaultText.style.marginTop = "10px";
+
+  const fileNameDisplay = document.createElement("p");
+  fileNameDisplay.style.color = "#000";
+  fileNameDisplay.style.fontWeight = "500";
+  fileNameDisplay.style.marginTop = "10px";
+  fileNameDisplay.style.display = "none"; // hidden initially
+
+  uploadBox.appendChild(defaultText);
+  uploadBox.appendChild(fileNameDisplay);
+
+  // Handle click and drag-drop
+  uploadBox.addEventListener("click", () => fileInput.click());
+  uploadBox.addEventListener("dragover", e => {
+    e.preventDefault();
+    uploadBox.classList.add("dragover");
+  });
+  uploadBox.addEventListener("dragleave", () => uploadBox.classList.remove("dragover"));
+  uploadBox.addEventListener("drop", e => {
+    e.preventDefault();
+    uploadBox.classList.remove("dragover");
+    fileInput.files = e.dataTransfer.files;
+    showSelectedFile();
+  });
+
+  // When user picks file manually
+  fileInput.addEventListener("change", showSelectedFile);
+
+  function showSelectedFile() {
+    const file = fileInput.files[0];
+    if (file) {
+      const fileSizeKB = (file.size / 1024).toFixed(1);
+      // Hide default text, show file info
+      defaultText.style.display = "none";
+      fileNameDisplay.style.display = "block";
+      fileNameDisplay.textContent = `📄 ${file.name} (${fileSizeKB} KB)`;
+    } else {
+      // Reset to default state
+      fileNameDisplay.style.display = "none";
+      defaultText.style.display = "block";
+    }
+  }
+
+  // Upload logic
+  document.getElementById("uploadBtn").addEventListener("click", async () => {
+    const file = fileInput.files[0];
+    const title = document.getElementById("title").value.trim();
+    const subject = document.getElementById("subject").value.trim();
+    const grade = document.getElementById("grade").value.trim();
+    const description = document.getElementById("description").value.trim();
+
+    if (!file) return alert("Please select a file first!");
+    if (!title || !subject || !grade || !description)
+      return alert("Please fill out all fields!");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", title);
+    formData.append("subject", subject);
+    formData.append("grade", grade);
+    formData.append("description", description);
+
+    try {
+      const response = await fetch("/upload_file/", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken")
+        }
+      });
+
+      const result = await response.json();
+      alert(result.message || result.error);
+    } catch (err) {
+      alert("Error uploading file: " + err.message);
+    }
+  });
+
+  // Django CSRF helper
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+
+
+<script>
+    const form = document.getElementById('uploadForm');
+
+    form.addEventListener('submit', function(event) {
+      // Get fields
+      const title = form.querySelector('[name="title"]');
+      const subject = form.querySelector('[name="subject"]');
+      const grade = form.querySelector('[name="grade"]');
+      const description = form.querySelector('[name="description"]');
+      const file = form.querySelector('[name="file"]');
+
+      let isValid = true;
+
+      // Helper to validate and show/hide messages
+      function validateField(field, errorId) {
+        const error = document.getElementById(errorId);
+        if (!field.value.trim()) {
+          error.style.display = 'block';
+          field.classList.add('invalid');
+          isValid = false;
+        } else {
+          error.style.display = 'none';
+          field.classList.remove('invalid');
+        }
+      }
+
+      // Validate all fields
+      validateField(title, 'titleError');
+      validateField(subject, 'subjectError');
+      validateField(grade, 'gradeError');
+      validateField(description, 'descriptionError');
+      validateField(file, 'fileError');
+
+      if (!isValid) {
+        event.preventDefault(); // Stop the form from submitting
+      }
+    });
+  </script>
+{% endblock %}
+{% endblock %}

@@ -175,5 +175,21 @@ window.onclick = (event) => {
 
 <script src="{% static 'js/func.js' %}"></script>
 
+<script>
+const confirmPasswordInput = document.getElementById("confirmPassword");
+
+confirmPasswordInput.addEventListener("blur", () => {
+    const password = passwordInput.value.trim();
+    const confirmPassword = confirmPasswordInput.value.trim();
+
+    if (confirmPassword && password !== confirmPassword) {
+        modalMsg.innerHTML = "Passwords do not match.";
+        modal.style.display = "block";
+    } else {
+        modal.style.display = "none";
+    }
+});
+</script>
+
 </body>
 </html>

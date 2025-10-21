@@ -39,6 +39,14 @@ ssl_require=True # enforce SSL
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
+import os
+from supabase import create_client
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-4ov5+#7t7n6_=$cajdex2rd96vpe*4!4**f9z)f!268)zkyro@'
 
@@ -48,7 +56,8 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://njoqbuhrvdbcpmwcmyyu.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qb3FidWhydmRiY3Btd2NteXl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NTM3MTQsImV4cCI6MjA3NDQyOTcxNH0.vOX39YUM8u7aNTu_qmXMqRl9vwvt2qDttJP8-c6-f5o") 
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qb3FidWhydmRiY3Btd2NteXl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODg1MzcxNCwiZXhwIjoyMDc0NDI5NzE0fQ.nHMnXDydggYgKJUXQQc1okTbdSGLMBCSJW5Z7RapkNY") 
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
 
 # Application definition
 
@@ -97,8 +106,13 @@ WSGI_APPLICATION = 'EdifyProject.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST':'aws-1-ap-southeast-1.pooler.supabase.com',
+        'PORT':'5432',
+        'NAME': 'postgres',
+        'USER': 'postgres.njoqbuhrvdbcpmwcmyyu',
+        'PASSWORD': 'Ed!fy1Mpr0j3ct',
+        'OPTIONS': {'sslmode': 'require'},
     }
 }
 

@@ -1,79 +1,84 @@
-{% comment %} {% extends 'base.html' %}
-{% load static %}
-
-{% block content %}
-<link rel="stylesheet" href="{% static 'css/uploadsCss.css' %}">
-
-<div class="uploads-container">
-  <div class="header">
-    <h1>Uploads</h1>
-    <button class="upload-btn"><i class="fa-solid fa-plus"></i> Upload New</button>
-  </div>
-
-  <div class="uploads-grid">
-    <div class="upload-card">
-      <h3>Mathematics - Grade 7</h3>
-      <p>Lesson Plan: Algebraic Expressions</p>
-      <div class="card-actions">
-        <button><i class="fa-solid fa-eye"></i> View</button>
-        <button><i class="fa-solid fa-trash"></i> Delete</button>
-      </div>
-    </div>
-
-    <div class="upload-card">
-      <h3>Science - Grade 8</h3>
-      <p>Module: Earth and Space</p>
-      <div class="card-actions">
-        <button><i class="fa-solid fa-eye"></i> View</button>
-        <button><i class="fa-solid fa-trash"></i> Delete</button>
-      </div>
-    </div>
-  </div>
-</div>
-{% endblock %} {% endcomment %}
 {% extends 'base.html' %}
-
 {% load static %}
 
-{% block content %}
-<link rel="stylesheet" href="{% static 'css/uploadsCss.css' %}">
+{% block title %}My Uploads - Edify{% endblock %}
 
-<div class="page">
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/uploadsCss.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="uploads-container">
+  <!-- Header -->
   <div class="header">
-    <h1>My Uploads</h1>
-    <p>Upload and manage your educational content here. You can share lessons, modules, or activities with other educators.</p>
+    <div class="header-left">
+      <h1>My Uploads</h1>
+    </div>
+     
+    <!-- Add Files button -->
+    <a href="{% url 'addfiles' %}" class="upload-btn">
+      <i class="fa-solid fa-plus"></i> Add Files
+    </a>
   </div>
 
-  <div class="uploads-body">
-    <button class="upload-btn">Upload File</button>
+  <!-- Attached Files Section -->
+  <div class="attached-header">
+    <div class="attached-left">
+      <h2>Attached Files</h2>
+      <p>Here you can explore your uploaded files</p>
+    </div>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>File Name</th>
-            <th>File Size</th>
-            <th>File Type</th>
-            <th>Subject</th>
-            <th>Grade/Year Level</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Rizal Quiz #1 Questions</td>
-            <td>2.1MB</td>
-            <td>PNG</td>
-            <td>Rizal</td>
-            <td>College 1st - 4th</td>
-            <td>
-              <a href="#" class="delete">Delete</a>
-              <a href="#" class="edit">Edit</a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="attached-actions">
+      <!-- Search -->
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Search files..." />
+        <button class="circle-btn" id="searchBtn">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+
+      <!-- Filter -->
+      <div class="filter-container">
+        <select id="filterSelect">
+          <option value="">All</option>
+          <option value="Rizal">Rizal</option>
+          <option value="Math">Math</option>
+          <option value="Science">Science</option>
+        </select>
+        <button class="circle-btn" id="filterBtn">
+          <i class="fa-solid fa-filter"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Files Table -->
+  <div class="table-container" id="uploadsTable">
+    <table>
+      <thead>
+        <tr>
+          <th>File Name</th>
+          <th>File Size</th>
+          <th>File Type</th>
+          <th>Subject</th>
+          <th>Grade/Year Level</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="fileList">
+        <!-- Populated dynamically via JavaScript -->
+      </tbody>
+    </table>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <h3>No files uploaded yet.</h3>
+      <p>Upload a file to get started.</p>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/uploads.js' %}"></script>
 {% endblock %}

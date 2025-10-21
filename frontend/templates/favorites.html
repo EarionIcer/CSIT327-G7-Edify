@@ -1,52 +1,50 @@
-{% comment %} {% extends 'base.html' %}
+// ...existing code...
+{% extends "base.html" %}
 {% load static %}
 
-{% block content %}
-<link rel="stylesheet" href="{% static 'css/favoritesCss.css' %}">
+{% block title %}Favorites - Edify{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/favoritesCss.css' %}">
+{% endblock %}
+
+{% block content %}
 <div class="favorites-container">
-  <div class="header">
-    <h1>Favorites</h1>
-    <div class="search-bar">
-      <i class="fa-solid fa-magnifying-glass"></i>
-      <input type="text" placeholder='Try "Algebra", "Grade 7", or "Quiz"'>
-    </div>
-  </div>
+  <div class="favorites-panel">
+    <div class="header">
+      <div>
+        <h1>My Favorites</h1>
+        <p>Your saved favorite resources will appear here for quick access.</p>
+      </div>
 
-  <div class="favorites-grid">
-    <div class="favorite-card">
-      <h3>Grade 7 English</h3>
-      <p>Activity: Reading Comprehension Module</p>
-      <button><i class="fa-solid fa-folder-open"></i> Open</button>
+      <!-- optional right helpers -->
+      <div style="text-align:right;">
+      </div>
     </div>
 
-    <div class="favorite-card">
-      <h3>Mathematics</h3>
-      <p>Quiz: Algebra Basics</p>
-      <button><i class="fa-solid fa-folder-open"></i> Open</button>
+    <div class="controls">
+      <div class="search-pill" role="search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder='Try "Algebra", "Grade 7", or "Quiz"'>
+      </div>
+
+      <div class="sort-pill" aria-label="Sort by">
+        <i class="fa-solid fa-filter" style="color:#9ca3af"></i>
+        <span style="color:#374151; font-weight:600; font-size:0.95rem;">Sort: </span>
+        <select style="border:none; background:transparent; outline:none; color:#374151; font-weight:600;">
+          <option>Date Added - Newest</option>
+          <option>Date Added - Oldest</option>
+        </select>
+      </div>
     </div>
-  </div>
-</div>
-{% endblock %} {% endcomment %}
 
-{% extends 'base.html' %}
-{% load static %}
-
-{% block content %}
-<link rel="stylesheet" href="{% static 'css/favoritesCss.css' %}">
-
-<div class="page">
-  <div class="header">
-    <h1>My Favorites</h1>
-    <p>Your saved favorite resources will appear here for quick access.</p>
-  </div>
-
-  <div class="favorites-body">
+    <!-- Empty state (shown because there are no favorites) -->
     <div class="empty-box">
       <h2>You haven’t favorited anything yet.</h2>
       <p>Save lessons, modules, and activities you love to easily find them later.</p>
-      <button class="explore-btn">Explore & Save</button>
+      <button class="explore-btn">Explore & save</button>
     </div>
+
   </div>
 </div>
 {% endblock %}
