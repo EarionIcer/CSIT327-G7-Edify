@@ -219,51 +219,40 @@ body {
 /* ===== Password Modal Styles ===== */
 .modal {
     display: none; /* Hidden by default */
-    position: fixed;
-    z-index: 1000;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    position: static; /* Not fixed — stays in page flow */
+    background: none;
+    width: 100%;
+    margin-top: 8px;
 }
 
 .modal-content {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    width: 300px;
-    margin: 15% auto;
-    text-align: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    animation: fadeIn 0.3s ease;
+    background: #ffe6e6; /* Light red background for warning */
+    border: 1px solid #ff4d4d;
+    border-radius: 8px;
+    padding: 10px 15px;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    box-shadow: none;
 }
 
 .modal-content p {
-    color: #333;
+    color: #d9534f;
     font-size: 14px;
+    margin: 0;
 }
 
 .modal-content #passwordMessage {
-    color: #d9534f; /* Bootstrap red */
-    font-weight: 600;
-    font-size: 16px;
+    color: #d9534f;
+    font-weight: 500;
+    font-size: 14px;
 }
 
 #closeModal {
-    margin-top: 10px;
-    padding: 6px 12px;
-    border: none;
-    background: #007bff;
-    color: white;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-#closeModal:hover {
-    background: #0056b3;
+    display: none; /* Hide close button since it's inline */
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: none; }
+    to { opacity: 1; transform: none; }
 }
