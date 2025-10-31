@@ -1,51 +1,81 @@
-# Python
+
+ 
+# Python bytecode files
+*.pyc
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-*.py.class
-*.so
-
-# Virtual environments
-env/
+*$py.class
+ 
+# Virtual environment
 venv/
-.venv/
+env/
 ENV/
-env.bak/
-venv.bak/
-
-# Django specific
+ 
+# Django-specific files
 *.log
 *.pot
 *.pyc
+*.pyo
+*.db
+*.sqlite3
 db.sqlite3
 media/
+ 
+# Static files
 staticfiles/
-*.mo
-
-# VS Code / JetBrains / Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Node / Frontend (if you use npm or build frontend assets)
-node_modules/
-dist/
-build/
-
+static_root/
+ 
 # Environment variables
 .env
 *.env
-.env.local
-.env.production
-.env.development
-
-# Backup or temporary files
-*.bak
-*.tmp
-*.old
+ 
+# IDE settings
+.vscode/
+.idea/
+ 
+# OS-specific files
+.DS_Store
+Thumbs.db
+ 
+# Coverage/testing
+htmlcov/
+.tox/
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+.cache
+nosetests.xml
+test.db
+ 
+# Build/packaging
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+__pycache__/
+ 
+# Pip logs
+pip-log.txt
+pip-delete-this-directory.txt
+ 
+# MyPy/Pyre/Pytype
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+ 
+# Jupyter Notebook
+.ipynb_checkpoints
+ 
+# Local settings
+local_settings.py
