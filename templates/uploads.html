@@ -66,7 +66,32 @@
         </tr>
       </thead>
       <tbody id="fileList">
-        <!-- Populated dynamically via JavaScript -->
+          {% for file in resources %}
+          <tr>
+            <td>{{ file.title }}</td>
+            <td>{{ file.file_size }}</td>
+            <td>{{ file.file_type }}</td>
+            <td>{{ file.subject }}</td>
+            <td>{{ file.grade_level }}</td>
+            <td>
+              <a href="{{ file.file_path }}" target="_blank" class="btn-action view">View</a>
+              <a href="{% url 'edit_file' file.id %}" class="btn-action edit">Edit</a>
+              <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            {% if file.is_favorite %}
+                <a href="{% url 'toggle_favorite' file.id %}" style="color: gold;">★ Favorited</a>
+            {% else %}
+                <a href="{% url 'toggle_favorite' file.id %}">☆ Favorite</a>
+            {% endif %}
+          </td>
+          </tr>
+          {% empty %}
+          <tr>
+              <td colspan="6" style="text-align:center;">No uploads yet.</td>
+          </tr>
+        {% endfor %}
       </tbody>
     </table>
 

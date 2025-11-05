@@ -126,10 +126,20 @@ tbody td {
 }
 
 .actions a {
-  margin-right: 10px;
+  color: white;
   text-decoration: none;
+  margin: 0 4px;
+  font-weight: 500;
 }
-a.edit {
+
+.view-btn { color: #5cb85c; }   /* green */
+.edit-btn { color: #f0ad4e; }   /* yellow */
+.delete-btn { color: #d9534f; } /* red */
+
+.actions a:hover {
+  text-decoration: underline;
+}
+  a.edit {
   color: #8ec8ff;
 }
 a.delete {

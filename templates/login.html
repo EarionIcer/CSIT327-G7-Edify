@@ -38,11 +38,20 @@
         <form method="post">
           {% csrf_token %}
           
-          {% if error %}
-            <p style="color:red; text-align:center;">{{ error }}</p>
-          {% endif %}
-          {% if success %}
-            <p style="color:green; text-align:center;">{{ success }}</p>
+          {% if messages %}
+              {% for message in messages %}
+                  <p style="text-align:center;padding:10px;
+                            border-radius:5px;
+                            margin-bottom:10px;
+                            {% if message.tags == 'error' %}
+                              background:#ffdddd;color:#a30000;border:1px solid #ff6b6b;
+                            {% else %}
+                              background:#ddffdd;color:#007b00;border:1px solid #6bff6b;
+                            {% endif %};
+                            ">
+                    {{ message }}
+                  </p>
+              {% endfor %}
           {% endif %}
 
           <label for="emailAd">Email Address</label>

@@ -1,50 +1,74 @@
-// ...existing code...
-{% extends "base.html" %}
-{% load static %}
+  // ...existing code...
+  {% extends "base.html" %}
+  {% load static %}
 
-{% block title %}Favorites - Edify{% endblock %}
+  {% block title %}Favorites - Edify{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/favoritesCss.css' %}">
-{% endblock %}
+  {% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/favoritesCss.css' %}">
+  {% endblock %}
 
-{% block content %}
-<div class="favorites-container">
+  {% block content %}
+  <div class="favorites-container">
   <div class="favorites-panel">
     <div class="header">
       <div>
         <h1>My Favorites</h1>
         <p>Your saved favorite resources will appear here for quick access.</p>
       </div>
-
-      <!-- optional right helpers -->
-      <div style="text-align:right;">
-      </div>
     </div>
 
     <div class="controls">
       <div class="search-pill" role="search">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" placeholder='Try "Algebra", "Grade 7", or "Quiz"'>
+        <input type="text" id="searchInput" placeholder='Try "Algebra", "Grade 7", or "Quiz"'>
       </div>
 
       <div class="sort-pill" aria-label="Sort by">
         <i class="fa-solid fa-filter" style="color:#9ca3af"></i>
         <span style="color:#374151; font-weight:600; font-size:0.95rem;">Sort: </span>
-        <select style="border:none; background:transparent; outline:none; color:#374151; font-weight:600;">
-          <option>Date Added - Newest</option>
-          <option>Date Added - Oldest</option>
+        <select id="sortSelect" style="border:none; background:transparent; outline:none; color:#374151; font-weight:600;">
+          <option value="newest">Date Added - Newest</option>
+          <option value="oldest">Date Added - Oldest</option>
         </select>
       </div>
     </div>
 
-    <!-- Empty state (shown because there are no favorites) -->
+    <!-- Show table if there are favorites -->
+    {% if favorites %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>File Name</th>
+            <th>Subject</th>
+            <th>File Size</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for file in favorites %}
+          <tr>
+            <td>{{ file.title }}</td>
+            <td>{{ file.subject }}</td>
+            <td>{{ file.file_size }}</td>
+            <td>
+              <a href="{{ file.file_url }}" target="_blank">View</a> |
+              <a href="{% url 'toggle_favorite' file.id %}">Remove Favorite</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <!-- Empty State -->
     <div class="empty-box">
       <h2>You haven’t favorited anything yet.</h2>
       <p>Save lessons, modules, and activities you love to easily find them later.</p>
-      <button class="explore-btn">Explore & save</button>
+      <a href="{% url 'uploads' %}" class="explore-btn">Explore & save</a>
     </div>
-
+    {% endif %}
   </div>
 </div>
 {% endblock %}

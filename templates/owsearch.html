@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}owSearch - Edify{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/owsearchCss.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <h1>Search</h1>
+    <form method="get" action="{% url 'owsearch' %}" class="search-form">
+        <input type="text" name="q" placeholder="Search by file name, subject, or grade..." value="{{ request.GET.q }}">
+        <button type="submit"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+    </form>
+
+    {% if query %}
+        <h3>Results for "{{ query }}"</h3>
+
+        {% if results %}
+            <ul class="file-list">
+                {% for file in results %}
+                    <li class="file-item">
+                        <i class="fa-solid fa-file-lines file-icon"></i>
+                        <div class="file-info">
+                            <strong>{{ file.filename }}</strong>
+                            <span>{{ file.file_type }} • {{ file.subject }} • Grade {{ file.grade_level }}</span>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="margin-top: 20px; font-weight: bold; color: red;">{{ message }}</p>
+        {% endif %}
+    {% else %}
+        <p>{{ message }}</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -31,11 +31,17 @@
 
         <form method="post">
           {% csrf_token %}
-          {% if error %}
-            <p style="color:red; text-align:center;">{{ error }}</p>
-          {% endif %}
-          {% if success %}
-            <p style="color:green; text-align:center;">{{ success }}</p>
+              {% if messages %}
+                  {% for message in messages %}
+                      <p style="text-align:center;
+                          padding:10px;
+                          margin-bottom:10px;
+                          border-radius:5px;
+                          background:{% if message.tags == 'error' %}#ffdddd{% else %}#ddffdd{% endif %};
+                          color:{% if message.tags == 'error' %}#a30000{% else %}#006600{% endif %};">
+                        {{ message }}
+                      </p>
+                {% endfor %}
           {% endif %}
 
           <!-- Name fields -->
@@ -100,7 +106,8 @@
 
   <!-- ✅ Password show/hide + validation scripts -->
   <script>
-    // === Password toggle ===
+    
+// === Password toggle ===
     const passwordInput = document.getElementById("password");
     const showPassword = document.getElementById("showPassword");
     const hidePassword = document.getElementById("hidePassword");
@@ -169,6 +176,8 @@
         modal.style.display = "none";
       }
     });
+
+    
   </script>
 
   <script src="{% static 'js/func.js' %}"></script>

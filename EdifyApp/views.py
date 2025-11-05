@@ -1,166 +1,110 @@
 
 # views.py 
 
-
+from .models import CustomUser
 from datetime import datetime
 import os
 import logging
+from sqlite3 import IntegrityError
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from supabase import create_client
+from supabase import create_client, Client
 from django.conf import settings   
-from .models import Resource, UploadedFile
+from .models import Resource
 from .forms import UploadForm 
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib import messages
 from .supabase_client import supabase
 from django.http import JsonResponse
 import uuid
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+
+from django.db import ProgrammingError
+from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth import login
-from django.contrib.auth.models import User
+# from django.contrib.auth.models import User
 from django.contrib import messages
 from datetime import datetime
+from django.utils import timezone
 import uuid
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+from django.http import JsonResponse
+from .supabase_client import supabase
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY") 
 supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
-# for uploading files
-def uploads(request):
-    if request.method == 'POST':
-        file = request.FILES['file']
-        subject = request.POST.get('subject')
-        grade_level = request.POST.get('grade_level')
 
-        # Generate unique filename
-        unique_name = f"{uuid.uuid4()}_{file.name}"
-
-        # Upload to Supabase storage
-        supabase.storage.from_('uploads').upload(unique_name, file.read())
-
-        # Insert file metadata into Supabase table
-        supabase.table('uploaded_files').insert({
-            'file_name': file.name,
-            'file_path': unique_name,
-            'subject': subject,
-            'grade_level': grade_level,
-        }).execute()
-
-        return redirect('uploads')
-
-    # Fetch all uploaded files
-    files = supabase.table('uploaded_files').select('*').execute().data
-    return render(request, 'uploads.html', {'files': files})
-
-# add files
-def add_files(request):
-    """Render the Add Files page"""
-    return render(request, "addfiles.html")
 
 # API for the upload files
+@login_required
 def upload_file(request):
-    if request.method == "POST" and request.FILES.get('file'):
-        title = request.POST.get('title', '').strip()
-        subject = request.POST.get('subject', '').strip()
-        grade = request.POST.get('grade', '').strip()
-        description = request.POST.get('description', '').strip()
-        uploader = request.POST.get('uploader')  # UUID of user
-        file = request.FILES['file']
-        thumbnail = request.POST.get('thumbnail')  # optional
+    if request.method == "POST":
+        uploaded_file = request.FILES.get("file")
+        title = request.POST.get("title")
+        subject = request.POST.get("subject")
+        grade = request.POST.get("grade")
+        description = request.POST.get("description")
 
-        # 1️⃣ Validate required fields
-        missing_fields = []
-        if not title:
-            missing_fields.append("title")
-        if not subject:
-            missing_fields.append("subject")
-        if not grade:
-            missing_fields.append("grade")
-        if not description:
-            missing_fields.append("description")
-
-        if missing_fields:
-            return JsonResponse({
-                "error": f"The following fields cannot be empty: {', '.join(missing_fields)}"
-            }, status=400)
-
-        file_name = f"{uuid.uuid4()}_{file.name}"  # unique filename
+        if not uploaded_file:
+            return JsonResponse({"error": "No file uploaded."}, status=400)
 
         try:
-            # debug logger to help diagnose RLS / key issues
-            logger = logging.getLogger(__name__)
-            try:
-                # show a short prefix of the configured Supabase key so we can tell anon vs service_role in logs
-                key_preview = (settings.SUPABASE_KEY or "")[:20]
-            except Exception:
-                key_preview = "(no key)"
-            logger.debug("Supabase key preview: %s", key_preview)
-            # 2️⃣ Upload file to Supabase Storage
-            upload_response = supabase.storage.from_(settings.SUPABASE_BUCKET).upload(file_name, file.read())
+            # Generate unique file name and path
+            file_name = f"{uuid.uuid4()}_{uploaded_file.name}"
+            file_path = f"user_uploads/{request.user.id}/{file_name}"
 
-            if isinstance(upload_response, dict) and 'error' in upload_response:
-                return JsonResponse({'error': upload_response['error']['message']}, status=400)
+            # Get file info
+            _, file_extension = os.path.splitext(uploaded_file.name)
+            file_type = uploaded_file.content_type or file_extension
 
-            # 3️⃣ Get public URL for the uploaded file
-            public_url = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
+            # ✅ Upload file to Supabase Storage
+            upload_res = supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
+                file_path, uploaded_file.read()
+            )
 
-            # 4️⃣ Insert metadata into Supabase table
+            if isinstance(upload_res, dict) and upload_res.get("error"):
+                return JsonResponse({"error": upload_res["error"]["message"]}, status=500)
+
+            # ✅ Get public file URL
+            public_url = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_path)
+
+            # ✅ Insert file metadata into Supabase table
             resource_data = {
                 "id": str(uuid.uuid4()),
                 "title": title,
                 "subject": subject,
                 "grade": grade,
-                "file_path": public_url,
-                "uploader": uploader,
-                "thumbnail": thumbnail or None,
-                "date_added": datetime.utcnow().isoformat(),
-                "date_changed": datetime.utcnow().isoformat(),
                 "description": description,
+                "file_path": public_url,
+                "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
+                "file_type": file_type,
+                "user_id": str(request.user.id),
+                "date_added": timezone.now().isoformat(),
+
             }
 
-            insert_response = supabase.table("resources").insert(resource_data).execute()
-            # Log the raw response — Supabase client returns .data and may set .error when RLS blocks
-            logger.debug("Supabase insert_response: %s", getattr(insert_response, '__dict__', str(insert_response)))
+            supabase.table("resources").insert(resource_data).execute()
 
-            # If Supabase returned an error payload, surface it immediately for diagnosis
-            err = None
-            if hasattr(insert_response, 'error') and insert_response.error:
-                err = insert_response.error
-            elif isinstance(insert_response, dict) and insert_response.get('error'):
-                err = insert_response.get('error')
-            if err:
-                logger.error("Supabase insert error: %s", err)
-                return JsonResponse({'error': 'Supabase insert failed', 'details': str(err)}, status=400)
-
-            # 5️⃣ Optional: store locally in Django DB for admin view
-            if insert_response.data:
-                Resource.objects.create(
-                    id=insert_response.data[0]['id'],
-                    title=title,
-                    subject=subject,
-                    grade=grade,
-                    file_path=public_url,
-                    uploader=uploader,
-                    thumbnail=thumbnail,
-                    description=description,
-                )
-
-                return JsonResponse({
-                    'message': 'File uploaded and saved to Supabase!',
-                    'url': public_url,
-                    'resource': insert_response.data
-                })
-            else:
-                return JsonResponse({'error': 'Failed to insert metadata into Supabase'}, status=400)
+            return JsonResponse({"message": "File uploaded successfully!"})
 
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)
 
-    return JsonResponse({'error': 'No file provided or invalid request method'}, status=400)
+    return JsonResponse({"error": "Invalid request method."}, status=405)
+
 
 
 
 # EdifyApp/views.py
+from django.contrib.auth.hashers import make_password
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -170,51 +114,143 @@ from EdifyProject.settings import supabase
 
 User = get_user_model()
 
+from django.contrib.auth import login as django_login
+from django.contrib.auth.hashers import make_password
+from django.shortcuts import render, redirect
+from django.contrib import messages
+
 def register(request):
+    """
+    Handles user registration by validating input, checking local database
+    for existing email, creating the user in Supabase, and finally
+    creating the local user profile.
+    """
     if request.method == "POST":
+        # 1. Get Data from POST request
         first_name = request.POST.get("first_name")
         last_name = request.POST.get("last_name")
         email = request.POST.get("email")
         password = request.POST.get("password")
         confirm_password = request.POST.get("confirm_password")
+        
+        # Basic input validation can go here (e.g., checking if fields are empty)
 
+        # 2. Check if Passwords Match
         if password != confirm_password:
-            return render(request, "register.html", {"error": "Passwords do not match!"})
+            messages.error(request, "❌ Passwords do not match! Please try again.")
+            # Keep the form data for better user experience (optional: pass context)
+            return render(request, "register.html")
+
+        # 3. Check for Existing Email in Local DB (for immediate error)
+        # **This addresses your specific request to error when the email is already created locally.**
+        if CustomUser.objects.filter(email__iexact=email).exists():
+            messages.error(request, "📧 An account with this email already exists!")
+            return render(request, "register.html")
 
         try:
-            # 1️⃣ Create in Supabase Auth
+            # 4. Create User in Supabase
             auth_response = supabase.auth.admin.create_user({
                 "email": email,
                 "password": password,
-                "email_confirm": True,  # optional: skip email verification
-                "user_metadata": {"first_name": first_name, "last_name": last_name}
+                "email_confirm": True, # Ensure this is what you want
+                "user_metadata": {
+                    "first_name": first_name,
+                    "last_name": last_name
+                }
             })
+            
+            # The Supabase Python library might raise an HTTPError or similar exception 
+            # if the email already exists in Supabase, which is caught below.
+
             user_data = auth_response.user
 
+            # 5. Check Supabase Response for Failure
             if not user_data:
-                return render(request, "register.html", {"error": "Supabase Auth creation failed!"})
+                # This check might be redundant if the library raises exceptions, 
+                # but it's a good safeguard.
+                messages.error(request, "⚠️ Supabase registration failed! The email might already exist or there was a server error.")
+                return render(request, "register.html")
 
-            # 2️⃣ Save in Django model
-            local_user = User.objects.create_user(
-                username=email,
+            # 6. Create Local User Profile
+            # NOTE: Storing the hashed password with `make_password` is correct.
+            local_user = CustomUser.objects.create(
                 email=email,
+                # It's safer to use a unique identifier from Supabase if available, 
+                # but using email as username is common.
+                username=email, 
                 first_name=first_name,
                 last_name=last_name,
-                password=password,
-                supabase_id=user_data.id
+                password=make_password(password), # Store the HASHED password
+                supabase_id=user_data.id # Store the Supabase UUID
             )
 
-            messages.success(request, f"Account created successfully for {email}!")
-            return redirect("login")
+            # 7. Log In the User
+            login(request, local_user)
+            request.session["user_email"] = email
+            # Consider using Django's standard session management and not setting 
+            # the expiry manually unless you have a specific reason.
+            request.session.set_expiry(3600) # Session expires in 1 hour (3600 seconds)
+
+            # 8. Redirect to the Overview Page
+            # **This is the most common failure point for your issue.**
+            messages.success(request, f"🎉 Welcome, {first_name}! Your account has been created.")
+            return redirect("overview")
 
         except Exception as e:
-            print("❌ Registration error:", e)
-            messages.error(request, "Failed to register user.")
+            # Catch exceptions from Supabase or the local DB operation.
+            # print(traceback.format_exc()) # Uncomment this for detailed debugging!
+            print("ERROR during registration:", e) 
+
+            # **CRITICAL:** If the Supabase call fails because the email already 
+            # exists in Supabase (but not locally yet), this catches it.
+            messages.error(request, "🚨 Failed to register. An unexpected error occurred or the email is already registered in our system. Try again!")
             return render(request, "register.html")
 
+    # If request is GET, just render the empty form
     return render(request, "register.html")
 
 
+def toggle_favorite(request, pk):
+    file = get_object_or_404(UploadedFile, pk=pk)
+    file.is_favorite = not file.is_favorite
+    file.save()
+
+    if file.is_favorite:
+        messages.success(request, f'"{file.title}" added to favorites.')
+    else:
+        messages.info(request, f'"{file.title}" removed from favorites.')
+
+    return redirect('uploads')
+
+
+
+def owsearch(request):
+    query = request.GET.get('q', '').strip()
+    results = []
+    message = ""
+
+    if query:
+        try:
+            results = UploadedFile.objects.filter(
+                Q(file__icontains=query) |
+                Q(subject__icontains=query) |
+                Q(grade_level__icontains=query)
+            )
+        except ProgrammingError:
+            # DB table missing — avoid 500 and show friendly message
+            results = []
+            message = f'File named "{query}" can’t be found. (Database table not present yet.)'
+        else:
+            if not results.exists():
+                message = f'File named "{query}" can’t be found.'
+    else:
+        message = "Enter a keyword to search your files."
+
+    return render(request, 'owsearch.html', {
+        'query': query,
+        'results': results,
+        'message': message,
+    })
 
 
 
@@ -224,33 +260,41 @@ def login_view(request):
         password = request.POST.get("password")
 
         try:
-            # 🔐 Authenticate with Supabase
             res = supabase.auth.sign_in_with_password({
                 "email": email,
                 "password": password
             })
+
+            if not res.user:
+                error_msg = res.error.message.lower() if res.error else ""
+
+                if "invalid login credentials" in error_msg:
+                    messages.error(request, "Incorrect password.")
+                elif "email" in error_msg:
+                    messages.error(request, "Invalid Gmail.")
+                else:
+                    messages.error(request, "Invalid credentials, please try again.")
+
+                return redirect("login")
+
+            # ✅ Successful login
             user = res.user
             session = res.session
 
-            if not user:
-                messages.error(request, "Invalid email or password.")
-                return render(request, "login.html")
-
-            # ✅ Store session info in Django session
             request.session["user_email"] = user.email
             request.session["access_token"] = session.access_token
             request.session["refresh_token"] = session.refresh_token
-            request.session.set_expiry(3600)  # expires after 1 hour
+            request.session.set_expiry(3600)
 
-            messages.success(request, f"Welcome {user.email}!")
+            
             return redirect("overview")
 
         except Exception as e:
             print("Supabase login error:", e)
             messages.error(request, "Invalid credentials!")
-            return render(request, "login.html")
+            return redirect("login")
 
-    return render(request, "login.html") 
+    return render(request, "login.html")
 
 
 def navbar(request):
@@ -262,13 +306,156 @@ def navbar(request):
     return render(request, "navbar.html", {"success": success_message})
 
 def overview(request):
-    return render(request, "overview.html")
+    try:
+        user = request.user  # ✅ Current logged-in user
 
+        # Step 1: Welcome message
+        welcome_msg = request.session.pop("welcome_message", None)
+        if welcome_msg:
+            messages.success(request, welcome_msg)
+
+        # Step 2: Fetch only this user’s resources
+        response = supabase.table("resources").select("*").eq("user_id", str(user.id)).execute()
+        resources = response.data or []
+
+        # Step 3: Compute stats
+        total_uploads = len(resources)
+        favorites_count = 0  # (optional: implement favorites later)
+        subjects = {r['subject'] for r in resources if r.get('subject')}
+        subjects_count = len(subjects)
+
+        # Total storage
+        total_kb = sum([
+            float(r.get('file_size', '0').split()[0])
+            for r in resources if r.get('file_size')
+        ])
+        total_storage = f"{round(total_kb / 1024, 2)} MB" if total_kb > 1024 else f"{total_kb} KB"
+
+        # Step 4: Recent uploads
+        recent_uploads = sorted(resources, key=lambda x: x.get('date_added', ''), reverse=True)[:5]
+
+        # Step 5: Context for template
+        context = {
+            "total_uploads": total_uploads,
+            "favorites_count": favorites_count,
+            "subjects_count": subjects_count,
+            "total_storage": total_storage,
+            "recent_uploads": recent_uploads,
+            "resources": resources,
+        }
+
+        return render(request, "overview.html", context)
+
+    except Exception as e:
+        return render(request, "overview.html", {"error": str(e)})
+
+# for uploading files
 def uploads(request):
-    return render(request, "uploads.html")
+    try:
+        # Only get files uploaded by the logged-in user
+        user_id = str(request.user.id)
+
+        response = (
+            supabase.table("resources")
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        resources = response.data or []
+
+        # Send them to the template
+        return render(request, "uploads.html", {"resources": resources})
+    except Exception as e:
+        # In case Supabase or network fails
+        return render(request, "uploads.html", {"error": str(e)})
+
+    
+# add files
+def add_files(request):
+    if request.method == "POST":
+        title = request.POST.get("title")
+        subject = request.POST.get("subject")
+        grade = request.POST.get("grade")
+        description = request.POST.get("description")
+        uploaded_file = request.FILES.get("file")
+
+        if not uploaded_file:
+            messages.error(request, "No file selected.")
+            return redirect("addfiles")
+
+        try:
+            # ✅ Upload file to Supabase Storage
+            file_name = f"{uuid.uuid4()}_{uploaded_file.name}"
+            upload_res = supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
+                file_name, uploaded_file.read()
+            )
+
+            # Check for errors
+            if isinstance(upload_res, dict) and upload_res.get("error"):
+                messages.error(request, f"Upload failed: {upload_res['error']['message']}")
+                return redirect("addfiles")
+
+            # ✅ Get public file URL
+            public_url = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
+
+            # ✅ Insert into 'resources' table in Supabase
+            resource_data = {
+                "id": str(uuid.uuid4()),
+                "title": title,
+                "subject": subject,
+                "grade": grade,
+                "description": description,
+                "file_path": public_url,
+                "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
+                "user_id": str(request.user.id),  # ✅ Now linked to logged-in user
+                "date_added": timezone.now().isoformat(),  # ✅ safer and timezone-aware
+            }
+            supabase.table("resources").insert(resource_data).execute()
+
+            messages.success(request, "File uploaded successfully!")
+            return redirect("uploads")
+
+        except Exception as e:
+            messages.error(request, f"Upload error: {e}")
+            return redirect("addfiles")
+
+    return render(request, "addfiles.html")
+
+
+def view_file(request, pk):
+    file = get_object_or_404(UploadedFile, pk=pk)
+    return render(request, 'view_file.html', {'file': file})
+
+def edit_file(request, pk):
+    file = get_object_or_404(UploadedFile, pk=pk)
+    if request.method == 'POST':
+        form = UploadedFileForm(request.POST, request.FILES, instance=file)
+        if form.is_valid():
+            form.save()
+            return redirect('uploads')  # redirects back to uploads page
+    else:
+        form = UploadedFileForm(instance=file)
+    return render(request, 'edit_file.html', {'form': form, 'file': file})
+
+def delete_file(request, pk):
+    """
+    Delete a file from Supabase storage and database.
+    """
+    if request.method == "POST":
+        file = get_object_or_404(UploadedFile, pk=pk)
+        file.file.delete(save=False)  # delete the actual uploaded file from storage
+        file.delete()  # remove the database record
+        messages.success(request, f"{file.subject} file deleted successfully!")
+        return redirect("uploads")
+    else:
+        messages.error(request, "Invalid request method.")
+        return redirect("uploads")
+
 
 def favorites(request):
-    return render(request, "favorites.html")
+    favorites = UploadedFile.objects.filter(is_favorite=True)
+    return render(request, 'favorites.html', {'favorites': favorites})
+
 
 def profiled(request):
     return render(request, 'profiled.html')
@@ -277,9 +464,6 @@ def about(request):
     return render(request, 'about.html')
 
 
-# def logout_view(request):
-#     request.session.flush()
-#     return redirect("login")
 def logout_view(request):
     # Optional: revoke Supabase session
     access_token = request.session.get("access_token")
@@ -289,6 +473,11 @@ def logout_view(request):
         except Exception:
             pass
 
-    request.session.flush()  # removes all session data
+    # ✅ Add message before flushing session
     messages.success(request, "You have been logged out.")
+
+    # Then clear session
+    request.session.flush()
+
     return redirect("login")
+

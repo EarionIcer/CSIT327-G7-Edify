@@ -1,42 +1,230 @@
+
+/* Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root {
+    --primary-blue: #647BFF;
+    --light-bg: #f4f7ff;
+    --card-bg: #ffffff;
+    --text-dark: #111;
+    --text-muted: #666;
+    --border-radius: 16px;
+    --shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
 .content {
-  flex: 1;
-  padding: 40px;
-  background-color: #1e1e1e;
-  color: #fff;
+    background: var(--light-bg);
+    padding: 40px 50px;
+    color: var(--text-dark);
+    font-family: 'Inter', sans-serif;
 }
 
-.content h1 {
-  color: #7a82fb;
-  font-size: 36px;
-  margin-bottom: 20px;
+/* Header */
+.overview-header h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--text-dark);
 }
 
-.content p, .content ul {
-  font-size: 16px;
-  line-height: 1.6;
+.overview-header hr {
+    border: none;
+    height: 2px;
+    background: #dedede;
+    width: 100%;
+    margin-bottom: 30px;
 }
 
-.content ul {
-  list-style: disc;
-  margin-left: 25px;
+/* STATS SECTION */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 30px;
 }
 
-.success-message {
-  background-color: #d9fdd3;
-  color: #333;
-  padding: 12px 20px;
-  border-radius: 8px;
-  text-align: center;
-  margin: 15px;
-  transition: opacity 0.4s ease;
+.stat-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease;
 }
 
-.success-message.fade-out {
-  opacity: 0;
+.stat-card:hover {
+    transform: translateY(-5px);
 }
 
-/* Optional hover class for sidebar movement */
-.menu li.hovered {
-  transform: translateX(5px);
-  transition: transform 0.3s ease;
+.stat-card i {
+    font-size: 28px;
+    color: var(--primary-blue);
+}
+
+.stat-info h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.stat-info p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* CARD BASE */
+.card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+}
+
+/* TWO COLUMN LAYOUT */
+.row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+/* Card headers */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.card-header a {
+    color: var(--primary-blue);
+    font-size: 14px;
+    text-decoration: none;
+}
+
+/* File list */
+.file-list {
+    margin: 15px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 14px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 16px;
+    background: var(--light-bg);
+    border-radius: 12px;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.file-item:hover {
+    background: #e8ecff;
+    transform: translateX(6px);
+}
+
+.file-info span {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.file-time {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Icons */
+.file-icon {
+    font-size: 22px;
+    color: #ffc107;
+}
+
+.favorite-icon {
+    font-size: 20px;
+    color: #ff6a8b;
+}
+
+/* QUICK ACTIONS */
+/* ===== Quick Actions — improved center & larger buttons ===== */
+/* ===== Quick Actions: full-width card with 3 spread-out buttons ===== */
+.quick-actions {
+    width: 100%;                 /* span full width of the content area */
+    max-width: 1200px;           /* optional maximum so it doesn't grow too wide */
+    margin: 24px auto 48px;      /* center card and add spacing */
+    padding: 28px;               /* roomy card padding */
+    box-shadow: var(--shadow);
+    border-radius: var(--border-radius);
+    background: var(--card-bg);
+}
+
+/* Title spacing */
+.quick-actions h3 {
+    margin: 0 0 18px 8px;        /* slight left offset matches card content feel */
+    font-size: 20px;
+}
+
+/* Use CSS Grid to create 3 equal columns for the buttons */
+.action-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* three equal columns */
+    gap: 28px;                              /* wide gap to spread buttons */
+    align-items: center;
+    justify-items: stretch;                 /* make buttons fill each column */
+}
+
+/* Make buttons fill their grid cell and have a large, pill-like look */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 64px;           /* tall button */
+    padding: 14px 22px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+    box-shadow: var(--shadow);
+    background: var(--card-bg);
+    color: var(--text-dark);
+    gap: 10px;                  /* space between icon and text */
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+/* Primary button stronger */
+.action-btn.primary {
+    background: var(--primary-blue);
+    color: #fff;
+}
+
+/* Hover states */
+.action-btn:hover { transform: translateY(-4px); background: #f0f0f0; }
+.action-btn.primary:hover { background: #5468e8; }
+
+/* Responsive: 2 columns on medium screens, stack on narrow phones */
+@media (max-width: 980px) {
+    .action-buttons {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
+}
+@media (max-width: 560px) {
+    .action-buttons {
+        grid-template-columns: 1fr;
+    }
+    .action-btn {
+        min-height: 56px;
+        font-size: 14px;
+    }
 }
