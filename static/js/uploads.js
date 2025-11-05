@@ -82,6 +82,24 @@ searchInput.addEventListener("keyup", filterTable);
 filterSelect.addEventListener("change", filterTable);
 
 
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
   const fileInput = document.getElementById('fileInput');
 
@@ -96,9 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const response = await fetch('/upload_file/', {
-        method: 'POST',
-        body: formData,
-      });
+      method: 'POST',
+      body: formData,
+      headers: { 'X-CSRFToken': csrftoken },
+    });
 
       const result = await response.json();
       alert(result.message || result.error);

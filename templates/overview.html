@@ -4,16 +4,140 @@
 {% block title %}Overview - Edify{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/overviewCss.css' %}" />
+<link rel="stylesheet" href="{% static 'css/overviewCss.css' %}">
 {% endblock %}
 
+
+
 {% block content %}
+
+{% if messages %}
+  <div class="messages">
+    {% for message in messages %}
+      <div class="alert {{ message.tags }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="overview-header">
     <h1>Overview</h1>
-    <p>Welcome to <strong>Edify</strong> — a collaborative educational platform where teachers can share, upload, and favorite valuable learning materials.</p>
-    <p>Here’s what you can do:</p>
-    <ul>
-        <li><strong>Uploads</strong> — Share your educational materials and resources.</li>
-        <li><strong>Favorites</strong> — Save your favorite lessons for easy access.</li>
-        <li><strong>Profile</strong> — Manage your educator profile and settings.</li>
-    </ul>
+    <hr>
+</div>
+
+<div class="stats-container">
+    <div class="stat-card">
+        <i class="fa-solid fa-upload"></i>
+        <div class="stat-info">
+            <h2>{{ total_uploads }}</h2>
+            <p>Total Uploads</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <i class="fa-solid fa-heart"></i>
+        <div class="stat-info">
+            <h2>{{ favorites_count }}</h2>
+            <p>Favorites</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <i class="fa-solid fa-book"></i>
+        <div class="stat-info">
+            <h2>{{ subjects_count }}</h2>
+            <p>Subjects</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <i class="fa-solid fa-database"></i>
+        <div class="stat-info">
+            <h2>{{ total_storage }}</h2>
+            <p>Storage Used</p>
+        </div>
+    </div>
+</div>
+
+    <div class="row">
+    <!-- Recent Uploads -->
+    <div class="card recent-uploads">
+        <div class="card-header">
+            <h3>Recent Uploads</h3>
+            <a href="{% url 'uploads' %}">View All</a>
+        </div>
+
+        {% if recent_uploads %}
+            <ul class="file-list">
+                {% for file in recent_uploads %}
+                    <li class="file-item">
+                        <i class="fa-solid fa-file file-icon"></i>
+                        <div class="file-info">
+                            <strong>{{ file.title }}</strong><br>
+                            <span>{{ file.subject }} • {{ file.grade_level }} • {{ file.file_size }}</span>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="empty-state">
+                <p>Nothing yet</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Favorite Files -->
+    <div class="card favorite-files">
+    <div class="card-header">
+        <h3>Favorites</h3>
+        <a href="{% url 'favorites' %}">View All</a>
+    </div>
+
+    {% if favorites %}
+        <ul class="file-list">
+            {% for file in favorites %}
+                <li class="file-item">
+                    <i class="fa-solid fa-heart file-icon" style="color:#e63946;"></i>
+                    <div class="file-info">
+                        <strong>{{ file.title }}</strong><br>
+                        <span>{{ file.subject }} • {{ file.file_size }}</span>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="empty-state">
+            <p>No favorites yet.</p>
+        </div>
+    {% endif %}
+</div>
+
+<div class="card quick-actions">
+    <h3>Quick Actions</h3>
+        <div class="action-buttons">
+            <a href="{% url 'uploads' %}" class="action-btn primary">
+                <i class="fa-solid fa-upload"></i> Upload File
+            </a>
+            <a href="{% url 'owsearch' %}" class="action-btn">
+                <i class="fa-solid fa-magnifying-glass"></i> owSearch
+            </a>
+            <a href="#" class="action-btn">
+                <i class="fa-solid fa-folder-tree"></i> Organize
+            </a>
+     </div>
+</div>
+
+
+{% if messages %}
+  <div class="messages" style="position: fixed; top: 10px; right: 10px; z-index: 9999;">
+    {% for message in messages %}
+      <div class="alert {{ message.tags }}" style="background: #d1e7dd; color: #0f5132; padding: 10px; margin-bottom: 5px; border-radius: 5px;">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+
 {% endblock %}

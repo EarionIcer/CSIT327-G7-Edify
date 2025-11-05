@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>{{ file.subject }}</h2>
+<p><strong>File name:</strong> {{ file.file.name }}</p>
+<p><strong>Grade:</strong> {{ file.grade_level }}</p>
+<p><a href="{{ file.file.url }}" target="_blank">Download / View File</a></p>
+<a href="{% url 'uploads' %}">Back</a>
+{% endblock %}

@@ -72,6 +72,8 @@ INSTALLED_APPS = [
     'EdifyApp',
 ]
 
+AUTH_USER_MODEL = 'EdifyApp.CustomUser'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -117,6 +119,9 @@ DATABASES = {
         'OPTIONS': {'sslmode': 'require'},
     }
 }
+
+
+
 
 
 
@@ -170,3 +175,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Optional: Compress static files for faster load
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+

@@ -3,6 +3,8 @@
 
 {% block title %}Add Files - Edify{% endblock %}
 
+{% csrf_token %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/addfilesCss.css' %}">
 {% endblock %}
@@ -129,14 +131,14 @@
     formData.append("description", description);
 
     try {
-      const response = await fetch("/upload_file/", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "X-CSRFToken": getCookie("csrftoken")
-        }
-      });
-
+          const response = await fetch("/upload_file/", {
+            method: "POST",
+            body: formData,
+            headers: {
+              "X-CSRFToken": getCookie("csrftoken")
+            },
+            credentials: "include" // ✅ Add this line!
+          });
       const result = await response.json();
       alert(result.message || result.error);
     } catch (err) {
