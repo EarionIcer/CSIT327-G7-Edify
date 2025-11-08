@@ -131,19 +131,29 @@
     formData.append("description", description);
 
     try {
-          const response = await fetch("/upload_file/", {
-            method: "POST",
-            body: formData,
-            headers: {
-              "X-CSRFToken": getCookie("csrftoken")
-            },
-            credentials: "include" // ✅ Add this line!
-          });
+      const response = await fetch("/upload_file/", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken")
+        },
+        credentials: "include" // ✅ Ensures session cookie is sent
+      });
+
+      // ✅ Handle "not logged in" case
+      if (response.status === 401) {
+        alert("You must log in first before uploading.");
+        window.location.href = "/login/";
+        return;
+      }
+
       const result = await response.json();
+
       alert(result.message || result.error);
     } catch (err) {
       alert("Error uploading file: " + err.message);
     }
+
   });
 
   // Django CSRF helper

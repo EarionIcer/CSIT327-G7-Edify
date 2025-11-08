@@ -462,4 +462,26 @@ input.invalid {
   }
 }
 
+/* Message alert styles */
+.alert {
+  text-align: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  font-weight: 500;
+}
+
+.alert-error {
+  background: #ffdddd;
+  color: #a30000;
+  border: 1px solid #ff7a7a;
+}
+
+.alert-success {
+  background: #ddffdd;
+  color: #006600;
+  border: 1px solid #8aff8a;
+}
+
+
 

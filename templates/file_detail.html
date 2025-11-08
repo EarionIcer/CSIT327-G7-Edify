@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}{{ file.title }} Details{% endblock %}
+{% block content %}
+<div class="file-detail">
+  <h1>{{ file.title }}</h1>
+  <p><strong>Subject:</strong> {{ file.subject }}</p>
+  <p><strong>Grade:</strong> {{ file.grade }}</p>
+  <p><strong>Description:</strong> {{ file.description }}</p>
+  <p><strong>File Type:</strong> {{ file.file_type|upper }}</p>
+  <p><strong>Date Added:</strong> {{ file.date_added|date:"M d, Y" }}</p>
+  <a href="{{ file.file_path }}" target="_blank" class="btn">Open File</a>
+</div>
+{% endblock %}

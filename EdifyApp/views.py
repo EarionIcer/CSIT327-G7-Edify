@@ -19,6 +19,8 @@ from django.http import JsonResponse
 import uuid
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.conf import settings
 
 from django.db import ProgrammingError
 from django.db.models import Q
@@ -35,6 +37,8 @@ from django.http import JsonResponse
 from .supabase_client import supabase
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+import requests
+from django.http import HttpResponse, Http404
 
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -44,8 +48,10 @@ supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
 
 # API for the upload files
-@login_required
+
 def upload_file(request):
+    if not request.session.get("user_id"):
+        return JsonResponse({"error": "You must be logged in to upload."}, status=401)
     if request.method == "POST":
         uploaded_file = request.FILES.get("file")
         title = request.POST.get("title")
@@ -63,7 +69,7 @@ def upload_file(request):
 
             # Get file info
             _, file_extension = os.path.splitext(uploaded_file.name)
-            file_type = uploaded_file.content_type or file_extension
+            file_type = file_extension.lower().lstrip('.')  # ✅ always returns 'pdf', 'txt', 'docx'
 
             # ✅ Upload file to Supabase Storage
             upload_res = supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
@@ -86,9 +92,8 @@ def upload_file(request):
                 "file_path": public_url,
                 "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
                 "file_type": file_type,
-                "user_id": str(request.user.id),
+                "user_id": request.session.get("user_id"),  # ✅ use session user_id from Supabase
                 "date_added": timezone.now().isoformat(),
-
             }
 
             supabase.table("resources").insert(resource_data).execute()
@@ -99,6 +104,150 @@ def upload_file(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method."}, status=405)
+
+
+def edit_file(request, file_id):
+    """
+    Edit resource metadata and optionally replace uploaded file.
+    Automatically deletes old file in Supabase storage if a new file is uploaded.
+    """
+
+    # ✅ Check login
+    user_id = request.session.get("user_id")
+    if not user_id:
+        messages.error(request, "Please log in first.")
+        return redirect("login")
+
+    # ✅ Fetch existing file record
+    try:
+        resp = supabase.table("resources").select("*").eq("id", str(file_id)).execute()
+    except Exception as e:
+        messages.error(request, f"Error fetching file: {e}")
+        return redirect("uploads")
+
+    if not resp.data:
+        messages.error(request, "File not found.")
+        return redirect("uploads")
+
+    resource = resp.data[0]
+
+    # ✅ Ensure this file belongs to the logged-in user
+    if str(resource.get("user_id")) != str(user_id):
+        messages.error(request, "You don't have permission to edit this file.")
+        return redirect("uploads")
+
+    # ✅ Handle update
+    if request.method == "POST":
+        title = request.POST.get("title", "").strip()
+        subject = request.POST.get("subject", "").strip()
+        grade = request.POST.get("grade", "").strip()
+        description = request.POST.get("description", "").strip()
+        uploaded_file = request.FILES.get("file")
+
+        # Build update payload
+        update_data = {
+            "title": title,
+            "subject": subject,
+            "grade": grade,
+            "description": description,
+        }
+
+        # ✅ Handle file replacement
+        if uploaded_file:
+            try:
+                # 🔹 1. Delete the old file first if it exists
+                old_file_path = resource.get("file_path")
+                if old_file_path:
+                    # Extract path after the bucket name
+                    # e.g. https://xyz.supabase.co/storage/v1/object/public/uploads/userid/file.pdf
+                    old_file_key = old_file_path.split("/uploads/")[-1]  # 'userid/file.pdf'
+                    print("🗑️ Deleting old file:", old_file_key)
+
+                    try:
+                        supabase.storage.from_(settings.SUPABASE_BUCKET).remove([old_file_key])
+                    except Exception as delete_err:
+                        print("⚠️ Warning: could not delete old file:", delete_err)
+
+                # 🔹 2. Upload the new file
+                file_name = f"{user_id}/{uuid.uuid4()}_{uploaded_file.name}"
+                result = supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
+                    file_name,
+                    uploaded_file.read(),
+                )
+
+                if isinstance(result, dict) and result.get("error"):
+                    raise Exception(result["error"].get("message", result["error"]))
+
+                public = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
+                public_url = public.get("publicUrl") if isinstance(public, dict) else public
+
+                # 🔹 3. Update database record with new file info
+                update_data.update({
+                    "file_path": public_url,
+                    "file_type": os.path.splitext(uploaded_file.name)[1].lower().lstrip("."),
+                    "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
+                })
+
+            except Exception as e:
+                messages.error(request, f"Upload failed: {e}")
+                return redirect("edit_file", file_id=file_id)
+
+        # ✅ Perform DB update
+        try:
+            print("📤 About to update file:", file_id)
+            print("🔧 Data being sent to Supabase:", update_data)
+
+            upd = supabase.table("resources").update(update_data).eq("id", str(file_id)).execute()
+            print("🔍 UPDATE RESULT:", upd)
+
+            if isinstance(upd, dict) and upd.get("error"):
+                raise Exception(upd["error"].get("message", upd["error"]))
+
+        except Exception as e:
+            print("❌ Update failed with exception:", e)
+            messages.error(request, f"Error updating file: {e}")
+            return redirect("edit_file", file_id=file_id)
+
+        messages.success(request, "File updated successfully.")
+        return redirect("uploads")
+
+    # ✅ GET: render form
+    return render(request, "edit_file.html", {"file": resource})
+
+
+
+
+def toggle_favorite(request, id):
+    try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            messages.error(request, "Please log in first.")
+            return redirect("login")
+
+        # ✅ Fetch the resource that belongs to this user
+        res = supabase.table("resources").select("is_favorite").eq("id", str(id)).eq("user_id", user_id).single().execute()
+
+        if not res.data:
+            messages.error(request, "File not found or unauthorized access.")
+            return redirect("uploads")
+
+        current_status = res.data.get("is_favorite", False)
+        new_status = not current_status
+
+        # ✅ Update favorite status
+        supabase.table("resources").update({"is_favorite": new_status}).eq("id", str(id)).execute()
+
+        if new_status:
+            messages.success(request, "File added to favorites ⭐")
+        else:
+            messages.info(request, "File removed from favorites.")
+
+        return redirect("uploads")
+
+    except Exception as e:
+        messages.error(request, f"Error updating favorite: {e}")
+        return redirect("uploads")
+
 
 
 
@@ -120,141 +269,142 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 
 def register(request):
-    """
-    Handles user registration by validating input, checking local database
-    for existing email, creating the user in Supabase, and finally
-    creating the local user profile.
-    """
     if request.method == "POST":
-        # 1. Get Data from POST request
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        confirm_password = request.POST.get("confirm_password")
-        
-        # Basic input validation can go here (e.g., checking if fields are empty)
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
+        email = request.POST.get("email", "").strip().lower()
+        password = request.POST.get("password", "")
+        confirm_password = request.POST.get("confirm_password", "")
 
-        # 2. Check if Passwords Match
+        # --- 1️⃣ Basic validation ---
+        if not all([first_name, last_name, email, password, confirm_password]):
+            messages.error(request, "⚠️ Please fill out all fields.")
+            return render(request, "register.html")
+
         if password != confirm_password:
-            messages.error(request, "❌ Passwords do not match! Please try again.")
-            # Keep the form data for better user experience (optional: pass context)
+            messages.error(request, "❌ Passwords do not match.")
             return render(request, "register.html")
 
-        # 3. Check for Existing Email in Local DB (for immediate error)
-        # **This addresses your specific request to error when the email is already created locally.**
-        if CustomUser.objects.filter(email__iexact=email).exists():
-            messages.error(request, "📧 An account with this email already exists!")
+        # --- 2️⃣ Check for duplicate email (Django & Supabase) ---
+        if CustomUser.objects.filter(email=email).exists():
+            messages.error(request, "📧 Email already exists.")
             return render(request, "register.html")
 
+        # Check Supabase users table for existing email
         try:
-            # 4. Create User in Supabase
-            auth_response = supabase.auth.admin.create_user({
-                "email": email,
-                "password": password,
-                "email_confirm": True, # Ensure this is what you want
-                "user_metadata": {
-                    "first_name": first_name,
-                    "last_name": last_name
-                }
-            })
-            
-            # The Supabase Python library might raise an HTTPError or similar exception 
-            # if the email already exists in Supabase, which is caught below.
-
-            user_data = auth_response.user
-
-            # 5. Check Supabase Response for Failure
-            if not user_data:
-                # This check might be redundant if the library raises exceptions, 
-                # but it's a good safeguard.
-                messages.error(request, "⚠️ Supabase registration failed! The email might already exist or there was a server error.")
+            existing = supabase.table("users").select("id").eq("email", email).execute()
+            if existing.data:
+                messages.error(request, "📧 This email is already registered in Supabase.")
                 return render(request, "register.html")
+        except Exception as e:
+            print("⚠️ Supabase check failed:", e)
 
-            # 6. Create Local User Profile
-            # NOTE: Storing the hashed password with `make_password` is correct.
+        # --- 3️⃣ Create new user ---
+        try:
+            # Generate UUID for user
+            user_uuid = str(uuid.uuid4())
+
+            # Hash password before storing
+            hashed_pw = make_password(password)
+
+            # --- Insert into Supabase ---
+            data = {
+                "id": user_uuid,
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "password": hashed_pw,  # Store hashed version!
+            }
+
+            supabase.table("users").insert(data).execute()
+
+            # --- Create local Django user ---
             local_user = CustomUser.objects.create(
+                supabase_id=user_uuid,
                 email=email,
-                # It's safer to use a unique identifier from Supabase if available, 
-                # but using email as username is common.
-                username=email, 
+                username=email,
                 first_name=first_name,
                 last_name=last_name,
-                password=make_password(password), # Store the HASHED password
-                supabase_id=user_data.id # Store the Supabase UUID
+                password=hashed_pw,
             )
 
-            # 7. Log In the User
+            # --- Log the user in ---
             login(request, local_user)
+            request.session["user_id"] = user_uuid
             request.session["user_email"] = email
-            # Consider using Django's standard session management and not setting 
-            # the expiry manually unless you have a specific reason.
-            request.session.set_expiry(3600) # Session expires in 1 hour (3600 seconds)
-
-            # 8. Redirect to the Overview Page
-            # **This is the most common failure point for your issue.**
             messages.success(request, f"🎉 Welcome, {first_name}! Your account has been created.")
             return redirect("overview")
 
         except Exception as e:
-            # Catch exceptions from Supabase or the local DB operation.
-            # print(traceback.format_exc()) # Uncomment this for detailed debugging!
-            print("ERROR during registration:", e) 
-
-            # **CRITICAL:** If the Supabase call fails because the email already 
-            # exists in Supabase (but not locally yet), this catches it.
-            messages.error(request, "🚨 Failed to register. An unexpected error occurred or the email is already registered in our system. Try again!")
+            print("❌ Registration error:", e)
+            messages.error(request, "🚨 Registration failed. Please try again later.")
             return render(request, "register.html")
 
-    # If request is GET, just render the empty form
     return render(request, "register.html")
 
 
-def toggle_favorite(request, pk):
-    file = get_object_or_404(UploadedFile, pk=pk)
-    file.is_favorite = not file.is_favorite
-    file.save()
-
-    if file.is_favorite:
-        messages.success(request, f'"{file.title}" added to favorites.')
-    else:
-        messages.info(request, f'"{file.title}" removed from favorites.')
-
-    return redirect('uploads')
 
 
 
 def owsearch(request):
-    query = request.GET.get('q', '').strip()
-    results = []
+    query = request.GET.get("q", "").strip()
+    show_all = "show_all" in request.GET
     message = ""
 
-    if query:
-        try:
-            results = UploadedFile.objects.filter(
-                Q(file__icontains=query) |
-                Q(subject__icontains=query) |
-                Q(grade_level__icontains=query)
-            )
-        except ProgrammingError:
-            # DB table missing — avoid 500 and show friendly message
-            results = []
-            message = f'File named "{query}" can’t be found. (Database table not present yet.)'
-        else:
-            if not results.exists():
-                message = f'File named "{query}" can’t be found.'
-    else:
-        message = "Enter a keyword to search your files."
+    # ✅ Get user_id from session
+    user_id = request.session.get("user_id")
+    if not user_id:
+        messages.error(request, "User not logged in.")
+        return redirect("login")
 
-    return render(request, 'owsearch.html', {
-        'query': query,
-        'results': results,
-        'message': message,
+   
+
+    try:
+        # ✅ Fetch all resources for this user
+        response = supabase.table("resources").select("*").eq("user_id", user_id).execute()
+        resources = response.data or []
+
+        # ✅ Convert Supabase timestamps to Python datetime
+        for r in resources:
+            date_str = r.get("date_added")
+            if date_str:
+                try:
+                    r["date_added"] = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                except Exception:
+                    pass  # Leave as-is if invalid format
+
+        # ✅ Apply search or "View All"
+        if query:
+            results = [
+                r for r in resources
+                if query.lower() in (
+                    f"{r.get('title', '').lower()} {r.get('subject', '').lower()} "
+                    f"{r.get('grade', '').lower()} {r.get('file_type', '').lower()}"
+                )
+            ]
+            message = f'Showing results for "{query}".' if results else f'No files found for "{query}".'
+
+        elif show_all:
+            results = sorted(resources, key=lambda x: x.get("date_added", ""), reverse=True)
+            message = "Showing all your uploaded files."
+
+        else:
+            results = []
+            message = ""  # Don't show anything if no search or show_all
+
+    except Exception as e:
+        results = []
+        message = f"Error fetching files: {str(e)}"
+
+    return render(request, "owsearch.html", {
+        "query": query,
+        "results": results,
+        "message": message,
+        "show_all": show_all,
     })
 
-
-
 def login_view(request):
+
     if request.method == "POST":
         email = request.POST.get("emailAd")
         password = request.POST.get("password")
@@ -280,7 +430,7 @@ def login_view(request):
             # ✅ Successful login
             user = res.user
             session = res.session
-
+            request.session["user_id"] = user.id  # <-- add this in login_view
             request.session["user_email"] = user.email
             request.session["access_token"] = session.access_token
             request.session["refresh_token"] = session.refresh_token
@@ -297,6 +447,73 @@ def login_view(request):
     return render(request, "login.html")
 
 
+def download_file(request, file_id):
+    # ✅ Check user session
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return redirect("login")
+
+
+    try:
+        # ✅ Get file data by id
+        response = supabase.table("resources").select("*").eq("id", str(file_id)).single().execute()
+        file_data = response.data
+
+        if not file_data:
+            raise Http404("File not found.")
+
+        # ✅ Ensure user owns the file
+        if file_data["user_id"] != user_id:
+            return HttpResponse("Unauthorized access.", status=403)
+
+        # ✅ Get the file URL and name
+        file_url = file_data["file_path"]
+        file_name = file_data["title"] or "downloaded_file"
+        file_type = file_data.get("file_type", "bin")
+
+        # ✅ Stream file from Supabase public URL
+        file_response = requests.get(file_url)
+        if file_response.status_code != 200:
+            return HttpResponse("Error downloading file from Supabase.", status=500)
+
+        # ✅ Prepare response for browser download
+        response = HttpResponse(
+            file_response.content,
+            content_type="application/octet-stream"
+        )
+        response["Content-Disposition"] = f'attachment; filename="{file_name}.{file_type}"'
+        return response
+
+    except Exception as e:
+        print("Download error:", str(e))
+        raise Http404("Error downloading file.")
+
+
+def file_detail(request, file_id):
+    # Get Supabase user ID from session
+    user_id = request.session.get("user_id")
+    if not user_id:
+        messages.error(request, "You must be logged in to view files.")
+        return redirect("login")
+
+    # Fetch file from Supabase
+    file_data = (
+        supabase.table("resources")
+        .select("*")
+        .eq("id", str(file_id))
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if not file_data.data:
+        messages.error(request, "File not found.")
+        return redirect("owsearch")
+
+    file = file_data.data[0]
+    return render(request, "file_detail.html", {"file": file})
+
+
+
 def navbar(request):
     user = request.session.get("user")
     if not user:
@@ -307,40 +524,55 @@ def navbar(request):
 
 def overview(request):
     try:
-        user = request.user  # ✅ Current logged-in user
+        # ✅ Get Supabase user_id from session
+        user_id = request.session.get("user_id")
+        if not user_id:
+            messages.error(request, "Please log in to view your dashboard.")
+            return redirect("login")
 
-        # Step 1: Welcome message
+        # ✅ Step 1: Welcome message
         welcome_msg = request.session.pop("welcome_message", None)
         if welcome_msg:
             messages.success(request, welcome_msg)
 
-        # Step 2: Fetch only this user’s resources
-        response = supabase.table("resources").select("*").eq("user_id", str(user.id)).execute()
+        # ✅ Step 2: Fetch only this user’s resources
+        response = supabase.table("resources").select("*").eq("user_id", str(user_id)).execute()
         resources = response.data or []
 
-        # Step 3: Compute stats
+        # ✅ Step 3: Compute stats
         total_uploads = len(resources)
-        favorites_count = 0  # (optional: implement favorites later)
+
+        # 🔥 Count favorites and collect them
+        favorites = [r for r in resources if r.get("is_favorite")]
+        favorites_count = len(favorites)
+
         subjects = {r['subject'] for r in resources if r.get('subject')}
         subjects_count = len(subjects)
 
-        # Total storage
+        # ✅ Compute total storage
         total_kb = sum([
-            float(r.get('file_size', '0').split()[0])
-            for r in resources if r.get('file_size')
-        ])
-        total_storage = f"{round(total_kb / 1024, 2)} MB" if total_kb > 1024 else f"{total_kb} KB"
+                float(r.get('file_size', '0').split()[0])
+                for r in resources if r.get('file_size')
+            ])
 
-        # Step 4: Recent uploads
+            # Round correctly to 2 decimal places
+        if total_kb > 1024:
+                total_storage = f"{total_kb / 1024:.2f} MB"
+        else:
+                total_storage = f"{total_kb:.2f} KB"
+        
+
+        # ✅ Step 4: Recent uploads
         recent_uploads = sorted(resources, key=lambda x: x.get('date_added', ''), reverse=True)[:5]
 
-        # Step 5: Context for template
+        # ✅ Step 5: Send data to template
         context = {
             "total_uploads": total_uploads,
             "favorites_count": favorites_count,
             "subjects_count": subjects_count,
             "total_storage": total_storage,
             "recent_uploads": recent_uploads,
+            "favorites": favorites,  # ✅ so we can show them in overview
             "resources": resources,
         }
 
@@ -349,12 +581,20 @@ def overview(request):
     except Exception as e:
         return render(request, "overview.html", {"error": str(e)})
 
+
 # for uploading files
 def uploads(request):
     try:
-        # Only get files uploaded by the logged-in user
-        user_id = str(request.user.id)
+        # ✅ Get logged-in user's ID from session
+        user_id = request.session.get("user_id")
 
+        if not user_id:
+            return redirect("login")
+
+        # ✅ Initialize Supabase client (if not globally defined)
+        supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+
+        # ✅ Fetch all files uploaded by this user
         response = (
             supabase.table("resources")
             .select("*")
@@ -363,10 +603,34 @@ def uploads(request):
         )
         resources = response.data or []
 
-        # Send them to the template
-        return render(request, "uploads.html", {"resources": resources})
+        # ✅ Generate dynamic subject list
+        subjects = sorted(list({r.get("subject", "") for r in resources if r.get("subject")}))
+
+        # ✅ Handle subject filtering
+        selected_subject = request.GET.get("subject", "All")
+        if selected_subject != "All":
+            resources = [r for r in resources if r.get("subject") == selected_subject]
+
+        # ✅ Handle search functionality (optional)
+        query = request.GET.get("q", "").strip()
+        if query:
+            resources = [
+                r for r in resources
+                if query.lower() in r.get("title", "").lower()
+                or query.lower() in r.get("subject", "").lower()
+                or query.lower() in r.get("grade", "").lower()
+            ]
+
+        context = {
+            "resources": resources,
+            "subjects": subjects,
+            "selected_subject": selected_subject,
+            "query": query,
+        }
+
+        return render(request, "uploads.html", context)
+
     except Exception as e:
-        # In case Supabase or network fails
         return render(request, "uploads.html", {"error": str(e)})
 
     
@@ -384,13 +648,19 @@ def add_files(request):
             return redirect("addfiles")
 
         try:
+            # ✅ Get user_id from session
+            user_id = request.session.get("user_id")
+            if not user_id:
+                messages.error(request, "User not logged in.")
+                return redirect("login")
+
             # ✅ Upload file to Supabase Storage
             file_name = f"{uuid.uuid4()}_{uploaded_file.name}"
             upload_res = supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
                 file_name, uploaded_file.read()
             )
 
-            # Check for errors
+            # ✅ Check for upload errors
             if isinstance(upload_res, dict) and upload_res.get("error"):
                 messages.error(request, f"Upload failed: {upload_res['error']['message']}")
                 return redirect("addfiles")
@@ -398,7 +668,12 @@ def add_files(request):
             # ✅ Get public file URL
             public_url = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
 
-            # ✅ Insert into 'resources' table in Supabase
+            # ✅ Detect file type automatically using extension
+            file_ext = os.path.splitext(uploaded_file.name)[1].lower()  # e.g. ".pdf"
+            if file_ext.startswith("."):
+                file_ext = file_ext[1:]  # remove dot → "pdf", "docx", "txt"
+
+            # ✅ Insert clean data to Supabase
             resource_data = {
                 "id": str(uuid.uuid4()),
                 "title": title,
@@ -407,9 +682,11 @@ def add_files(request):
                 "description": description,
                 "file_path": public_url,
                 "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
-                "user_id": str(request.user.id),  # ✅ Now linked to logged-in user
-                "date_added": timezone.now().isoformat(),  # ✅ safer and timezone-aware
+                "file_type": file_ext,  # ✅ correct readable type
+                "date_added": timezone.now().isoformat(),
+                "user_id": user_id,
             }
+
             supabase.table("resources").insert(resource_data).execute()
 
             messages.success(request, "File uploaded successfully!")
@@ -422,39 +699,82 @@ def add_files(request):
     return render(request, "addfiles.html")
 
 
+
 def view_file(request, pk):
     file = get_object_or_404(UploadedFile, pk=pk)
     return render(request, 'view_file.html', {'file': file})
 
-def edit_file(request, pk):
-    file = get_object_or_404(UploadedFile, pk=pk)
-    if request.method == 'POST':
-        form = UploadedFileForm(request.POST, request.FILES, instance=file)
-        if form.is_valid():
-            form.save()
-            return redirect('uploads')  # redirects back to uploads page
-    else:
-        form = UploadedFileForm(instance=file)
-    return render(request, 'edit_file.html', {'form': form, 'file': file})
 
-def delete_file(request, pk):
-    """
-    Delete a file from Supabase storage and database.
-    """
+
+def delete_file(request, id):
     if request.method == "POST":
-        file = get_object_or_404(UploadedFile, pk=pk)
-        file.file.delete(save=False)  # delete the actual uploaded file from storage
-        file.delete()  # remove the database record
-        messages.success(request, f"{file.subject} file deleted successfully!")
-        return redirect("uploads")
-    else:
-        messages.error(request, "Invalid request method.")
-        return redirect("uploads")
+        user_id = request.session.get("user_id")
+        if not user_id:
+            messages.error(request, "You must log in to delete a file.")
+            return redirect("login")
+
+        try:
+            # ✅ Get file record from Supabase
+            file_res = supabase.table("resources").select("*").eq("id", id).execute()
+            if not file_res.data:
+                messages.error(request, "File not found.")
+                return redirect("overview")
+
+            file_data = file_res.data[0]
+
+            # ✅ Make sure the user owns this file
+            if file_data.get("user_id") != user_id:
+                messages.error(request, "You can only delete your own files.")
+                return redirect("overview")
+
+            # ✅ Extract file name from file_path (to delete from storage)
+            file_url = file_data.get("file_path", "")
+            file_name = file_url.split("/")[-1] if "/" in file_url else file_url
+
+            # ✅ Delete from Supabase Storage
+            supabase.storage.from_(settings.SUPABASE_BUCKET).remove([f"user_uploads/{user_id}/{file_name}"])
+
+            # ✅ Delete from Supabase Table
+            supabase.table("resources").delete().eq("id", id).execute()
+
+            messages.success(request, "File deleted successfully!")
+            return redirect("overview")
+
+        except Exception as e:
+            messages.error(request, f"Error deleting file: {e}")
+            return redirect("overview")
+
+    messages.error(request, "Invalid request method.")
+    return redirect("overview")
+
 
 
 def favorites(request):
-    favorites = UploadedFile.objects.filter(is_favorite=True)
-    return render(request, 'favorites.html', {'favorites': favorites})
+    try:
+        # ✅ Ensure user is logged in
+        user_id = request.session.get("user_id")
+        if not user_id:
+            messages.error(request, "Please log in to view your favorites.")
+            return redirect("login")
+
+        # ✅ Fetch only the user's favorite files from Supabase
+        response = (
+            supabase.table("resources")
+            .select("*")
+            .eq("user_id", str(user_id))
+            .eq("is_favorite", True)
+            .execute()
+        )
+
+        favorites = response.data or []
+
+        # ✅ Render favorites page
+        return render(request, "favorites.html", {"favorites": favorites})
+
+    except Exception as e:
+        messages.error(request, f"Error loading favorites: {e}")
+        return redirect("overview")
+
 
 
 def profiled(request):
@@ -480,4 +800,3 @@ def logout_view(request):
     request.session.flush()
 
     return redirect("login")
-

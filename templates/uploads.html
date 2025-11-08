@@ -14,8 +14,6 @@
     <div class="header-left">
       <h1>My Uploads</h1>
     </div>
-     
-    <!-- Add Files button -->
     <a href="{% url 'addfiles' %}" class="upload-btn">
       <i class="fa-solid fa-plus"></i> Add Files
     </a>
@@ -28,29 +26,28 @@
       <p>Here you can explore your uploaded files</p>
     </div>
 
-    <div class="attached-actions">
-      <!-- Search -->
+  <div class="attached-actions">
+    <form method="get" action="{% url 'uploads' %}" class="search-filter">
       <div class="search-container">
-        <input type="text" id="searchInput" placeholder="Search files..." />
-        <button class="circle-btn" id="searchBtn">
+        <input type="text" name="q" placeholder="Search files..." value="{{ query }}">
+        <button type="submit" class="circle-btn">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
       </div>
 
-      <!-- Filter -->
       <div class="filter-container">
-        <select id="filterSelect">
-          <option value="">All</option>
-          <option value="Rizal">Rizal</option>
-          <option value="Math">Math</option>
-          <option value="Science">Science</option>
+        <select name="subject" onchange="this.form.submit()">
+          <option value="All" {% if selected_subject == 'All' %}selected{% endif %}>All</option>
+          {% for subj in subjects %}
+            <option value="{{ subj }}" {% if selected_subject == subj %}selected{% endif %}>{{ subj }}</option>
+          {% endfor %}
         </select>
-        <button class="circle-btn" id="filterBtn">
-          <i class="fa-solid fa-filter"></i>
-        </button>
       </div>
-    </div>
-  </div>
+    </form>
+</div>
+
+
+</div>
 
   <!-- Files Table -->
   <div class="table-container" id="uploadsTable">
@@ -62,35 +59,60 @@
           <th>File Type</th>
           <th>Subject</th>
           <th>Grade/Year Level</th>
-          <th>Actions</th>
+          <th style="text-align:center;">Actions</th>
         </tr>
       </thead>
       <tbody id="fileList">
-          {% for file in resources %}
-          <tr>
-            <td>{{ file.title }}</td>
-            <td>{{ file.file_size }}</td>
-            <td>{{ file.file_type }}</td>
-            <td>{{ file.subject }}</td>
-            <td>{{ file.grade_level }}</td>
-            <td>
-              <a href="{{ file.file_path }}" target="_blank" class="btn-action view">View</a>
-              <a href="{% url 'edit_file' file.id %}" class="btn-action edit">Edit</a>
-              <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;">
+        {% for file in resources %}
+        <tr>
+          <td>{{ file.title }}</td>
+          <td>{{ file.file_size }}</td>
+          <td>{{ file.file_type }}</td>
+          <td>{{ file.subject }}</td>
+          <td>{{ file.grade }}</td>
+          <td style="text-align: center;">
+            <div class="action-icons">
+              <!-- View -->
+              <!-- <a href="{{ file.file_path }}" target="_blank" title="View" class="icon-btn">
+                <i class="fa-solid fa-eye icon-view"></i>
+              </a> -->
+
+              <!-- Download -->
+             <a href="{% url 'download_file' file.id %}" title="Download" class="icon-btn">
+              <i class="fa-solid fa-download icon-download"></i>
+            </a>  
+
+              <!-- Edit -->
+              <a href="{% url 'edit_file' file.id %}" class="icon-btn">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </a>
+
+              <!-- Delete -->
+              <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                <button type="submit" title="Delete" class="icon-btn">
+                  <i class="fa-solid fa-trash icon-delete"></i>
+                </button>
               </form>
-            {% if file.is_favorite %}
-                <a href="{% url 'toggle_favorite' file.id %}" style="color: gold;">★ Favorited</a>
-            {% else %}
-                <a href="{% url 'toggle_favorite' file.id %}">☆ Favorite</a>
-            {% endif %}
+
+              <!-- Favorite -->
+              {% if file.is_favorite %}
+                <a href="{% url 'toggle_favorite' file.id %}" title="Unfavorite" class="icon-btn">
+                  <i class="fa-solid fa-star icon-fav" style="color: gold;"></i>
+                </a>
+              {% else %}
+                <a href="{% url 'toggle_favorite' file.id %}" title="Add to Favorites" class="icon-btn">
+                  <i class="fa-regular fa-star icon-fav"></i>
+                </a>
+              {% endif %}
+            </div>
           </td>
-          </tr>
-          {% empty %}
-          <tr>
-              <td colspan="6" style="text-align:center;">No uploads yet.</td>
-          </tr>
+        </tr>
+
+        {% empty %}
+        <tr>
+          <td colspan="6" style="text-align:center;">No uploads yet.</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -106,4 +128,10 @@
 
 {% block extra_js %}
 <script src="{% static 'js/uploads.js' %}"></script>
+<script>
+  // Confirm before delete
+  function confirmDelete() {
+    return confirm("Are you sure you want to delete this file?");
+  }
+</script>
 {% endblock %}

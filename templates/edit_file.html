@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Edit File - Edify{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/addfilesCss.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="addfiles-container">
+  <div class="header">
+    <h1>Edit File</h1>
+    <p>Update your file details or replace your uploaded material.</p>
+
+    <!-- Back button -->
+    <a href="{% url 'uploads' %}" class="back-btn">
+      <i class="fa-solid fa-arrow-left"></i> Back to My Uploads
+    </a>
+  </div>
+
+  <div class="form-body">
+    <!-- Left section -->
+    <div class="left-section">
+      <!-- ✅ Regular form submission (no fetch) -->
+      <form method="POST" enctype="multipart/form-data" action="{% url 'edit_file' file.id %}">
+        {% csrf_token %}
+
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" value="{{ file.title }}" required autocomplete="off" />
+
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="6">{{ file.description }}</textarea>
+
+        <div class="inline-fields">
+          <div class="field">
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" name="subject" value="{{ file.subject }}" required autocomplete="off"/>
+          </div>
+
+          <div class="field">
+            <label for="grade">Grade / Year Level</label>
+            <input type="text" id="grade" name="grade" value="{{ file.grade }}" required autocomplete="off"/>
+          </div>
+        </div>
+
+        <!-- Hidden file input linked to upload box -->
+        <input type="file" id="fileInput" name="file" hidden />
+
+        <button type="submit" class="upload-btn">
+          <i class="fa-solid fa-save"></i> Save Changes
+        </button>
+      </form>
+    </div>
+
+    <!-- Right section -->
+    <div class="right-section">
+      <div class="upload-box" id="uploadArea">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <p>Click here or drag and drop to replace your file</p>
+      </div>
+      <p style="margin-top: 8px; color: #555;">
+        Current File: <strong>{{ file.title }}</strong> ({{ file.file_type|upper }})
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // --- File upload drag/drop logic ---
+  const uploadBox = document.getElementById("uploadArea");
+  const fileInput = document.getElementById("fileInput");
+
+  uploadBox.addEventListener("click", () => fileInput.click());
+  uploadBox.addEventListener("dragover", e => {
+    e.preventDefault();
+    uploadBox.classList.add("dragover");
+  });
+  uploadBox.addEventListener("dragleave", () => uploadBox.classList.remove("dragover"));
+  uploadBox.addEventListener("drop", e => {
+    e.preventDefault();
+    uploadBox.classList.remove("dragover");
+    fileInput.files = e.dataTransfer.files;
+  });
+</script>
+{% endblock %}
