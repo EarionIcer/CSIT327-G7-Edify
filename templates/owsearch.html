@@ -1,40 +1,52 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}owSearch - Edify{% endblock %}
+{% block title %}Search Files - Edify{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/owsearchCss.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="search-container">
-    <h1>Search</h1>
-    <form method="get" action="{% url 'owsearch' %}" class="search-form">
-        <input type="text" name="q" placeholder="Search by file name, subject, or grade..." value="{{ request.GET.q }}">
-        <button type="submit"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+<div class="owsearch-container">
+  <div class="search-header">
+    <h1>Search Files</h1>
+    <form method="get" action="{% url 'owsearch' %}" class="search-bar">
+      <input type="text" name="q" value="{{ query }}" placeholder="Search your files..." />
+      <button type="submit"><i class="fa fa-search"></i></button>
     </form>
+  </div>
 
-    {% if query %}
-        <h3>Results for "{{ query }}"</h3>
+  {% if message %}
+    <p class="search-message">{{ message }}</p>
+  {% endif %}
 
-        {% if results %}
-            <ul class="file-list">
-                {% for file in results %}
-                    <li class="file-item">
-                        <i class="fa-solid fa-file-lines file-icon"></i>
-                        <div class="file-info">
-                            <strong>{{ file.filename }}</strong>
-                            <span>{{ file.file_type }} • {{ file.subject }} • Grade {{ file.grade_level }}</span>
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="margin-top: 20px; font-weight: bold; color: red;">{{ message }}</p>
-        {% endif %}
-    {% else %}
-        <p>{{ message }}</p>
-    {% endif %}
+  {% if results %}
+    <div class="file-grid">
+      {% for file in results %}
+      <div class="file-card">
+        <div class="file-icon">
+          <i class="fa-solid fa-file"></i>
+        </div>
+        <div class="file-details">
+          <h3 class="file-title">{{ file.title }}</h3>
+          <p class="file-meta">{{ file.subject }} • {{ file.grade }}</p>
+          <p class="file-type">{{ file.file_type|upper }}</p>
+        </div>
+        <div class="file-actions">
+          <a href="{% url 'download_file' file.id %}" title="Download" class="icon-btn">
+              <i class="fa-solid fa-download icon-download"></i>
+            </a>
+          <a href="{% url 'edit_file' file.id %}" title="Edit"><i class="fa-solid fa-pen"></i></a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-folder-open"></i>
+      <p>No files found.</p>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

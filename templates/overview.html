@@ -11,15 +11,6 @@
 
 {% block content %}
 
-{% if messages %}
-  <div class="messages">
-    {% for message in messages %}
-      <div class="alert {{ message.tags }}">
-        {{ message }}
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
 
 <div class="overview-header">
     <h1>Overview</h1>
@@ -88,29 +79,34 @@
     </div>
 
     <!-- Favorite Files -->
-    <div class="card favorite-files">
-    <div class="card-header">
-        <h3>Favorites</h3>
-        <a href="{% url 'favorites' %}">View All</a>
-    </div>
+    <!-- Favorite Files -->
+        <div class="card favorite-files">
+        <div class="card-header">
+            <h3>Favorites</h3>
+            <a href="{% url 'favorites' %}">View All</a>
+        </div>
 
-    {% if favorites %}
-        <ul class="file-list">
+        {% if favorites %}
+            <ul class="file-list">
             {% for file in favorites %}
                 <li class="file-item">
+                <a href="{{ file.file_path }}" target="_blank" class="file-link">
                     <i class="fa-solid fa-heart file-icon" style="color:#e63946;"></i>
                     <div class="file-info">
-                        <strong>{{ file.title }}</strong><br>
-                        <span>{{ file.subject }} • {{ file.file_size }}</span>
+                    <strong>{{ file.title }}</strong><br>
+                    <span>
+                        {{ file.subject|default:"No subject" }} • {{ file.file_size|default:"N/A" }}
+                    </span>
                     </div>
+                </a>
                 </li>
             {% endfor %}
-        </ul>
-    {% else %}
-        <div class="empty-state">
-            <p>No favorites yet.</p>
+            </ul>
+        {% else %}
+            <p class="no-favorites">No favorite files yet.</p>
+        {% endif %}
         </div>
-    {% endif %}
+
 </div>
 
 <div class="card quick-actions">
@@ -120,7 +116,7 @@
                 <i class="fa-solid fa-upload"></i> Upload File
             </a>
             <a href="{% url 'owsearch' %}" class="action-btn">
-                <i class="fa-solid fa-magnifying-glass"></i> owSearch
+                <i class="fa-solid fa-magnifying-glass"></i> Search
             </a>
             <a href="#" class="action-btn">
                 <i class="fa-solid fa-folder-tree"></i> Organize

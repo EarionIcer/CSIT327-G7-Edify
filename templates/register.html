@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/registerCss.css' %}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
+
 <body>
   <div class="wrapper">
     <div class="container">
@@ -29,19 +30,14 @@
       <div class="login-form">
         <h2>Create Account</h2>
 
-        <form method="post">
+        <form method="post" action="{% url 'register' %}" autocomplete="off">
           {% csrf_token %}
-              {% if messages %}
-                  {% for message in messages %}
-                      <p style="text-align:center;
-                          padding:10px;
-                          margin-bottom:10px;
-                          border-radius:5px;
-                          background:{% if message.tags == 'error' %}#ffdddd{% else %}#ddffdd{% endif %};
-                          color:{% if message.tags == 'error' %}#a30000{% else %}#006600{% endif %};">
-                        {{ message }}
-                      </p>
-                {% endfor %}
+          {% if messages %}
+            {% for message in messages %}
+              <p class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                {{ message }}
+              </p>
+            {% endfor %}
           {% endif %}
 
           <!-- Name fields -->
@@ -59,14 +55,14 @@
           <!-- Email -->
           <div class="field">
             <label for="email">Email Address</label>
-            <input type="text" id="email" name="email" placeholder="Enter your email address" required>
+            <input type="email" id="email" name="email" placeholder="Enter your email address" required>
           </div>
 
           <!-- Password -->
           <div class="field">
             <label for="password">Password</label>
             <div class="password-wrapper">
-              <input type="password" id="password" name="password" placeholder="Enter password" required>
+              <input type="password" id="password" name="password" placeholder="Enter password" required minlength="8" autocomplete="new-password">
               <i class="fa-solid fa-eye" id="showPassword"></i>
               <i class="fa-solid fa-eye-slash" id="hidePassword" style="display: none;"></i>
             </div>
@@ -83,7 +79,7 @@
           <div class="field">
             <label for="confirmPassword">Confirm Password</label>
             <div class="password-wrapper">
-              <input type="password" id="confirmPassword" name="confirm_password" placeholder="Confirm password" required>
+              <input type="password" id="confirmPassword" name="confirm_password" placeholder="Confirm password" required minlength="8" autocomplete="new-password">
               <i class="fa-solid fa-eye" id="showConfirmPassword"></i>
               <i class="fa-solid fa-eye-slash" id="hideConfirmPassword" style="display: none;"></i>
             </div>
@@ -106,8 +102,7 @@
 
   <!-- ✅ Password show/hide + validation scripts -->
   <script>
-    
-// === Password toggle ===
+    // === Password toggle ===
     const passwordInput = document.getElementById("password");
     const showPassword = document.getElementById("showPassword");
     const hidePassword = document.getElementById("hidePassword");
@@ -176,8 +171,6 @@
         modal.style.display = "none";
       }
     });
-
-    
   </script>
 
   <script src="{% static 'js/func.js' %}"></script>
