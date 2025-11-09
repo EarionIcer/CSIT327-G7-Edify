@@ -1,6 +1,7 @@
 
 # views.py 
 
+# from email.utils import localtime
 from .models import CustomUser
 from datetime import datetime
 import os
@@ -12,6 +13,7 @@ from supabase import create_client, Client
 from django.conf import settings   
 from .models import Resource
 from .forms import UploadForm 
+from django.utils.timezone import localtime
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
 from .supabase_client import supabase
@@ -19,13 +21,18 @@ from django.http import JsonResponse
 import uuid
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from django.utils.timezone import make_aware
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+
 
 from django.db import ProgrammingError
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.humanize.templatetags.humanize import naturaltime
+from django.utils.timezone import now
+from django.utils.timesince import timesince
 # from django.contrib.auth.models import User
 from django.contrib import messages
 from datetime import datetime
@@ -522,6 +529,7 @@ def navbar(request):
     success_message = request.session.pop("success_message", None)
     return render(request, "navbar.html", {"success": success_message})
 
+
 def overview(request):
     try:
         # ✅ Get Supabase user_id from session
@@ -530,19 +538,13 @@ def overview(request):
             messages.error(request, "Please log in to view your dashboard.")
             return redirect("login")
 
-        # ✅ Step 1: Welcome message
-        welcome_msg = request.session.pop("welcome_message", None)
-        if welcome_msg:
-            messages.success(request, welcome_msg)
-
-        # ✅ Step 2: Fetch only this user’s resources
+        # ✅ Step 1: Fetch all this user’s resources
         response = supabase.table("resources").select("*").eq("user_id", str(user_id)).execute()
         resources = response.data or []
 
-        # ✅ Step 3: Compute stats
+        # ✅ Step 2: Compute stats
         total_uploads = len(resources)
 
-        # 🔥 Count favorites and collect them
         favorites = [r for r in resources if r.get("is_favorite")]
         favorites_count = len(favorites)
 
@@ -551,29 +553,35 @@ def overview(request):
 
         # ✅ Compute total storage
         total_kb = sum([
-                float(r.get('file_size', '0').split()[0])
-                for r in resources if r.get('file_size')
-            ])
+            float(r.get('file_size', '0').split()[0])
+            for r in resources if r.get('file_size')
+        ])
+        total_storage = f"{total_kb / 1024:.2f} MB" if total_kb > 1024 else f"{total_kb:.2f} KB"
 
-            # Round correctly to 2 decimal places
-        if total_kb > 1024:
-                total_storage = f"{total_kb / 1024:.2f} MB"
-        else:
-                total_storage = f"{total_kb:.2f} KB"
-        
+        # ✅ Step 3: Convert date_added → human readable “time ago”
+        for r in resources:
+            date_str = r.get("date_added")
+            if date_str:
+                try:
+                    dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                    time_diff = timesince(dt, now())
+                    r["time_ago"] = time_diff.split(",")[0] + " ago"
+                except Exception:
+                    r["time_ago"] = ""
+            else:
+                r["time_ago"] = ""
 
-        # ✅ Step 4: Recent uploads
+        # ✅ Step 4: Sort by newest and pick top 5
         recent_uploads = sorted(resources, key=lambda x: x.get('date_added', ''), reverse=True)[:5]
 
-        # ✅ Step 5: Send data to template
+        # ✅ Step 5: Context for template
         context = {
             "total_uploads": total_uploads,
             "favorites_count": favorites_count,
             "subjects_count": subjects_count,
             "total_storage": total_storage,
             "recent_uploads": recent_uploads,
-            "favorites": favorites,  # ✅ so we can show them in overview
-            "resources": resources,
+            "favorites": favorites,
         }
 
         return render(request, "overview.html", context)
@@ -751,24 +759,35 @@ def delete_file(request, id):
 
 def favorites(request):
     try:
-        # ✅ Ensure user is logged in
         user_id = request.session.get("user_id")
         if not user_id:
-            messages.error(request, "Please log in to view your favorites.")
+            messages.error(request, "Please log in to view favorites.")
             return redirect("login")
 
-        # ✅ Fetch only the user's favorite files from Supabase
         response = (
             supabase.table("resources")
             .select("*")
             .eq("user_id", str(user_id))
             .eq("is_favorite", True)
+            .order("date_added", desc=True)
             .execute()
         )
 
         favorites = response.data or []
 
-        # ✅ Render favorites page
+        # ✅ Convert Supabase string timestamps into formatted time
+        for file in favorites:
+            date_str = file.get("date_added")
+
+            if date_str:
+                try:
+                    dt = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f%z")
+                    file["formatted_date"] = dt.strftime("%b %d %Y, %I:%M %p")
+                except:
+                    file["formatted_date"] = "Unknown"
+            else:
+                file["formatted_date"] = "Unknown"
+
         return render(request, "favorites.html", {"favorites": favorites})
 
     except Exception as e:
