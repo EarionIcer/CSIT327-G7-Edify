@@ -45,6 +45,7 @@
         <p><strong>Grade/Year:</strong> {{ file.grade|default:"—" }}</p>
         <p><strong>File Type:</strong> {{ file.file_type|upper }}</p>
         <p><strong>File Size:</strong> {{ file.file_size }}</p>
+        <small style="color: gray;">{{ file.formatted_date }}</small>
       </div>
 
       <div class="fav-actions">
