@@ -21,6 +21,7 @@ from django.http import JsonResponse
 import uuid
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from django.contrib.auth.hashers import check_password
 from django.utils.timezone import make_aware
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -46,6 +47,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 import requests
 from django.http import HttpResponse, Http404
+
 
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -348,6 +350,7 @@ def register(request):
             return render(request, "register.html")
 
     return render(request, "register.html")
+ 
 
 
 
@@ -411,48 +414,50 @@ def owsearch(request):
     })
 
 def login_view(request):
-
+    """
+    Secure login using CustomUser table in Supabase.
+    Validates email & hashed password, then creates session.
+    """
     if request.method == "POST":
-        email = request.POST.get("emailAd")
-        password = request.POST.get("password")
-
+        email = request.POST.get("emailAd", "").strip().lower()
+        password = request.POST.get("password", "").strip()
+ 
+        if not email or not password:
+            messages.error(request, "Please fill in all fields.")
+            return redirect("login")
+ 
         try:
-            res = supabase.auth.sign_in_with_password({
-                "email": email,
-                "password": password
-            })
-
-            if not res.user:
-                error_msg = res.error.message.lower() if res.error else ""
-
-                if "invalid login credentials" in error_msg:
-                    messages.error(request, "Incorrect password.")
-                elif "email" in error_msg:
-                    messages.error(request, "Invalid Gmail.")
-                else:
-                    messages.error(request, "Invalid credentials, please try again.")
-
+            # ✅ 1. Fetch user from Supabase CustomUser table
+            response = supabase.table("EdifyApp_customuser").select("*").eq("email", email).execute()
+            user_data = response.data[0] if response.data else None
+ 
+            if not user_data:
+                messages.error(request, "Email not found. Please register first.")
                 return redirect("login")
-
-            # ✅ Successful login
-            user = res.user
-            session = res.session
-            request.session["user_id"] = user.id  # <-- add this in login_view
-            request.session["user_email"] = user.email
-            request.session["access_token"] = session.access_token
-            request.session["refresh_token"] = session.refresh_token
-            request.session.set_expiry(3600)
-
-            
+ 
+            # ✅ 2. Compare hash password using Django's built-in check_password
+            stored_hash = user_data["password"]
+            if not check_password(password, stored_hash):
+                messages.error(request, "Incorrect password.")
+                return redirect("login")
+ 
+            # ✅ 3. Create session (store user's info)
+            request.session["user_id"] = user_data["id"]
+            request.session["user_email"] = user_data["email"]
+            request.session["first_name"] = user_data.get("first_name", "")
+            request.session["last_name"] = user_data.get("last_name", "")
+            request.session.set_expiry(3600)  # Session expires in 1 hour
+ 
+            messages.success(request, f"Welcome back, {user_data.get('first_name', '') or 'User'}!")
             return redirect("overview")
-
+ 
         except Exception as e:
             print("Supabase login error:", e)
-            messages.error(request, "Invalid credentials!")
+            messages.error(request, "Error logging in. Please try again.")
             return redirect("login")
-
+ 
+    # Render login page if GET
     return render(request, "login.html")
-
 
 def download_file(request, file_id):
     # ✅ Check user session

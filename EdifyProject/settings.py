@@ -72,7 +72,7 @@ INSTALLED_APPS = [
     'EdifyApp',
 ]
 
-AUTH_USER_MODEL = 'EdifyApp.CustomUser'
+AUTH_USER_MODEL = "EdifyApp.CustomUser"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
