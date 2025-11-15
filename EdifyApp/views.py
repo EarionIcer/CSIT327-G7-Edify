@@ -47,9 +47,21 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 import requests
 from django.http import HttpResponse, Http404
+from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.conf import settings
+from django.contrib.auth.hashers import check_password
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
 
 
 
+
+CustomUser = get_user_model()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY") 
 supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
@@ -224,6 +236,26 @@ def edit_file(request, file_id):
     return render(request, "edit_file.html", {"file": resource})
 
 
+def forgot_password_view(request):
+    if request.method == "POST":
+        email = request.POST.get("email").strip().lower()
+        user = CustomUser.objects.filter(email=email).first()
+
+        if not user:
+            messages.error(request, "⚠️ No account found with that email.")
+            return redirect("forgot_password")
+
+        # ✅ Generate password reset link
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_link = request.build_absolute_uri(f"/reset/{uid}/{token}/")
+
+        # --- In production: send email (for now, just display the link) ---
+        messages.success(request, f"🔗 Password reset link: {reset_link}")
+        return redirect("forgot_password")
+
+    return render(request, "forgot_password.html")
+
 
 
 def toggle_favorite(request, id):
@@ -294,42 +326,15 @@ def register(request):
             messages.error(request, "❌ Passwords do not match.")
             return render(request, "register.html")
 
-        # --- 2️⃣ Check for duplicate email (Django & Supabase) ---
+        # --- 2️⃣ Check for duplicate email ---
         if CustomUser.objects.filter(email=email).exists():
             messages.error(request, "📧 Email already exists.")
             return render(request, "register.html")
 
-        # Check Supabase users table for existing email
         try:
-            existing = supabase.table("users").select("id").eq("email", email).execute()
-            if existing.data:
-                messages.error(request, "📧 This email is already registered in Supabase.")
-                return render(request, "register.html")
-        except Exception as e:
-            print("⚠️ Supabase check failed:", e)
-
-        # --- 3️⃣ Create new user ---
-        try:
-            # Generate UUID for user
-            user_uuid = str(uuid.uuid4())
-
-            # Hash password before storing
+            # --- 3️⃣ Create local Django user only ---
             hashed_pw = make_password(password)
-
-            # --- Insert into Supabase ---
-            data = {
-                "id": user_uuid,
-                "first_name": first_name,
-                "last_name": last_name,
-                "email": email,
-                "password": hashed_pw,  # Store hashed version!
-            }
-
-            supabase.table("users").insert(data).execute()
-
-            # --- Create local Django user ---
             local_user = CustomUser.objects.create(
-                supabase_id=user_uuid,
                 email=email,
                 username=email,
                 first_name=first_name,
@@ -337,10 +342,13 @@ def register(request):
                 password=hashed_pw,
             )
 
-            # --- Log the user in ---
+            # --- 4️⃣ Log the user in ---
             login(request, local_user)
-            request.session["user_id"] = user_uuid
-            request.session["user_email"] = email
+
+            # ✅ Store Django’s integer ID in session
+            request.session["user_id"] = local_user.id  
+            request.session["user_email"] = local_user.email
+
             messages.success(request, f"🎉 Welcome, {first_name}! Your account has been created.")
             return redirect("overview")
 
@@ -350,7 +358,7 @@ def register(request):
             return render(request, "register.html")
 
     return render(request, "register.html")
- 
+
 
 
 
@@ -414,50 +422,51 @@ def owsearch(request):
     })
 
 def login_view(request):
-    """
-    Secure login using CustomUser table in Supabase.
-    Validates email & hashed password, then creates session.
-    """
+    # ✅ If already logged in, redirect
+    if request.user.is_authenticated:
+        return redirect("overview")
+
     if request.method == "POST":
-        email = request.POST.get("emailAd", "").strip().lower()
-        password = request.POST.get("password", "").strip()
- 
-        if not email or not password:
-            messages.error(request, "Please fill in all fields.")
-            return redirect("login")
- 
+        email = request.POST.get("emailAd").strip().lower()
+        password = request.POST.get("password")
+        remember_me = request.POST.get("remember_me")  # Checkbox value
+
         try:
-            # ✅ 1. Fetch user from Supabase CustomUser table
-            response = supabase.table("EdifyApp_customuser").select("*").eq("email", email).execute()
-            user_data = response.data[0] if response.data else None
- 
-            if not user_data:
-                messages.error(request, "Email not found. Please register first.")
+            user = CustomUser.objects.filter(email=email).first()
+
+            if not user:
+                messages.error(request, "❌ Account not found.")
                 return redirect("login")
- 
-            # ✅ 2. Compare hash password using Django's built-in check_password
-            stored_hash = user_data["password"]
-            if not check_password(password, stored_hash):
-                messages.error(request, "Incorrect password.")
+
+            if not check_password(password, user.password):
+                messages.error(request, "⚠️ Incorrect password.")
                 return redirect("login")
- 
-            # ✅ 3. Create session (store user's info)
-            request.session["user_id"] = user_data["id"]
-            request.session["user_email"] = user_data["email"]
-            request.session["first_name"] = user_data.get("first_name", "")
-            request.session["last_name"] = user_data.get("last_name", "")
-            request.session.set_expiry(3600)  # Session expires in 1 hour
- 
-            messages.success(request, f"Welcome back, {user_data.get('first_name', '') or 'User'}!")
+
+            # ✅ Log in the user
+            login(request, user)
+
+            # ✅ “Remember Me” logic
+            if remember_me:
+                # Keep the session active for 30 days
+                request.session.set_expiry(60 * 60 * 24 * 30)
+            else:
+                # Expire when browser closes
+                request.session.set_expiry(0)
+
+            # ✅ Store user_id for Supabase-related queries
+            request.session["user_id"] = user.id
+            request.session["user_email"] = user.email
+
+            messages.success(request, f"👋 Welcome back, {user.first_name or user.email}!")
             return redirect("overview")
- 
+
         except Exception as e:
-            print("Supabase login error:", e)
-            messages.error(request, "Error logging in. Please try again.")
+            print("⚠️ Login error:", e)
+            messages.error(request, "An error occurred during login.")
             return redirect("login")
- 
-    # Render login page if GET
+
     return render(request, "login.html")
+
 
 def download_file(request, file_id):
     # ✅ Check user session
