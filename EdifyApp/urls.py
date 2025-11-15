@@ -28,6 +28,7 @@ urlpatterns = [
     path("download/<uuid:file_id>/", views.download_file, name="download_file"),
     # path("edit_file/<uuid:file_id>/", views.edit_file, name="edit_file"),
     path("edit_file/<str:file_id>/", views.edit_file, name="edit_file"),
+    path("forgot-password/", views.forgot_password_view, name="forgot_password"),
     path("delete_file/<str:id>/", views.delete_file, name="delete_file"),
 
 ]
