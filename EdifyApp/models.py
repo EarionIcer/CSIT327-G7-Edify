@@ -2,29 +2,6 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-# for uploading the files
-# class UploadedFile(models.Model):
-#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#     file = models.FileField(upload_to='uploads/')
-#     subject = models.CharField(max_length=100)
-#     grade_level = models.CharField(max_length=100)
-#     file_type = models.CharField(max_length=50, blank=True, null=True)
-#     file_size = models.CharField(max_length=50, blank=True, null=True)
-#     title = models.CharField(max_length=200, default="Untitled")
-#     uploaded_at = models.DateTimeField(auto_now_add=True)
-#     is_favorite = models.BooleanField(default=False)
-
-#     def get_filename(self):
-#         return self.file.name.split('/')[-1]
-
-#     def get_file_type(self):
-#         return self.file.name.split('.')[-1].upper()
-
-#     def get_file_size(self):
-#         return f"{round(self.file.size / 1024 / 1024, 2)} MB"
-
-#     def __str__(self):
-#         return self.title
 
 class CustomUser(AbstractUser):
     supabase_id = models.CharField(max_length=255, blank=True, null=True)
@@ -79,14 +56,3 @@ class Resource(models.Model):
         return self.file_size or "Unknown Size"
     
 
-# Create your models here.
-# class CustomUser(models.Model):
-#     first_name = models.CharField(max_length=100)
-#     last_name = models.CharField(max_length=100)
-#     email = models.EmailField(unique=True)
-#     password = models.CharField(max_length=255)
-#     supabase_id = models.CharField(max_length=255, blank=True, null=True)
-    
-
-#     def __str__(self):
-#         return self.email

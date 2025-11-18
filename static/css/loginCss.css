@@ -118,6 +118,7 @@ body {
   transform: translateY(-50%);
   cursor: pointer;
   color: #888;
+
 }
 
 /* Extra options */
@@ -241,7 +242,7 @@ label[for="password"] {
 
 
 /* 🔹 Email field customization */
-#emailAd {
+#emailAd{
   border: 1px solid #4CAF50;        /* green border */
   background: #f3fff3;              /* subtle green tint */
 }
@@ -250,4 +251,24 @@ label[for="emailAd"] {
   color: #4CAF50;
   font-weight: 600;
 }
+
+.msg {
+    text-align: center;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.msg-error {
+    background: #ffdddd;
+    color: #a30000;
+    border: 1px solid #ff6b6b;
+}
+
+.msg-success {
+    background: #ddffdd;
+    color: #007b00;
+    border: 1px solid #6bff6b;
+}
+
 

@@ -54,11 +54,29 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = True
 
 #for the deployment on render.com
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+
+ALLOWED_HOSTS = [
+    "csit327-g7-edify.onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
+
+
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://csit327-g7-edify.onrender.com/",
+]
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
+
+#remember me for login session
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
+SESSION_SAVE_EVERY_REQUEST = True
+
 
 # Application definition
 
