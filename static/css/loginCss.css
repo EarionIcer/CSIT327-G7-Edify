@@ -1,274 +1,362 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+/* --- Reset & Base Styles --- */
+:root {
+    --primary-color: #4f46e5; /* Indigo - Matches Profile/About */
+    --primary-dark: #4338ca;
+    --text-dark: #1f2937;
+    --text-gray: #6b7280;
+    --bg-light: #f3f4f6;
+    --white: #ffffff;
+    --border-color: #e5e7eb;
+    --error-bg: #fee2e2;
+    --error-text: #b91c1c;
+    --success-bg: #d1fae5;
+    --success-text: #065f46;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
 body {
-  font-family: 'Poppins', sans-serif;
-  background: #f2f2f2;
-  margin: 0;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+    font-family: 'Inter', 'Poppins', sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Outer wrapper ensures centered layout and handles mobile scaling */
-.wrapper {
-  width: 100%;
-  max-width: 1200px;
-  padding: 20px;
-  box-sizing: border-box;
+/* --- Page Wrapper --- */
+.page-wrapper {
+    width: 100%;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* Main container */
-.container {
-  display: flex;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  width: 100%;
-  height: auto;
+/* --- Main Card Container --- */
+.login-container {
+    display: flex;
+    background: var(--white);
+    width: 100%;
+    max-width: 1100px;
+    border-radius: 20px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    min-height: 600px;
 }
 
-/* Left side */
-.welcome {
-  background-color: #667EEA;
-  color: white;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 40px;
-  box-sizing: border-box;
+/* --- Left Side: Brand Section --- */
+.brand-section {
+    flex: 1;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: var(--white);
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
 }
 
-.logo-edify {
-  display: flex;
-  align-items: center;
-  margin-bottom: 30px;
+.brand-content {
+    position: relative;
+    z-index: 10;
+}
+
+.logo-lockup {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
 }
 
 .logo-box {
-  width: 70px;
-  height: 70px;
-  background: white;
-  border-radius: 12px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-right: 15px;
+    width: 60px;
+    height: 60px;
+    background: var(--white);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .logo-box img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+    width: 40px;
+    height: auto;
 }
 
-.welcome h1 {
-  font-size: 32px;
-  margin: 0;
+.logo-lockup h1 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
 }
 
-.welcome h3 {
-  margin: 15px 0;
-  font-size: 48px;
+.brand-section h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2rem;
+    margin-bottom: 20px;
+    font-weight: 600;
 }
 
-/* Right side */
-.login-form {
-  flex: 1;
-  padding: 50px 60px;
-  box-sizing: border-box;
+.brand-section p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    opacity: 0.9;
+    max-width: 400px;
 }
 
-.login-form h2 {
-  text-align: center;
-  margin-bottom: 40px;
-  color: #667EEA;
-  font-size: 36px;
+/* Decorative Circle */
+.circle-decoration {
+    position: absolute;
+    bottom: -100px;
+    right: -100px;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
 }
 
-.login-form label {
-  display: block;
-  margin-bottom: 5px;
-  color: #666;
-  font-weight: 500;
-  font-size: 14px;
+/* --- Right Side: Form Section --- */
+.form-section {
+    flex: 1;
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: var(--white);
 }
 
-.login-form input[type="text"],
-.login-form input[type="password"] {
-  width: 100%;
-  padding: 10px 5px;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-family: 'Poppins', sans-serif;
-  background: #f9f9f9;
+.form-header {
+    margin-bottom: 30px;
 }
 
-.password-wrapper {
-  position: relative;
+.form-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 8px;
 }
 
-.password-wrapper i {
-  position: absolute;
-  top: 35%;
-  right: 10px;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: #888;
-
+.form-header p {
+    color: var(--text-gray);
+    font-size: 0.95rem;
 }
 
-/* Extra options */
-.extra-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  flex-wrap: wrap;
-  gap: 10px;
+/* --- Inputs & Labels --- */
+.input-group {
+    margin-bottom: 20px;
 }
 
-.extra-options a {
-  color: #667EEA;
-  text-decoration: none;
+.input-group label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    margin-bottom: 8px;
 }
 
-.btn {
-  display: inline-block;
-  width: 100%;
-  padding: 12px 20px;
-  background-color: #667EEA;
-  color: white;
-  border-radius: 8px;
-  border: none;
-  text-decoration: none;
-  transition: 0.3s;
-  font-weight: 600;
-  cursor: pointer;
+.input-wrapper {
+    position: relative;
 }
 
-.btn:hover {
-  background-color: #5565C1;
+/* Icon inside input */
+.input-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 12px 15px 12px 45px; /* Left padding for icon */
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.3s ease;
+    background-color: #f9fafb;
+}
+
+.input-wrapper input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background-color: var(--white);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); /* Soft Indigo Ring */
+}
+
+/* Toggle Password Icon */
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.toggle-password:hover {
+    color: var(--primary-color);
+}
+
+/* --- Form Actions --- */
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-gray);
+}
+
+.remember-me input {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color);
+}
+
+.forgot-link {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.forgot-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* --- Buttons --- */
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    background-color: var(--primary-color);
+    color: var(--white);
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-login:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 .signup-text {
-  text-align: center;
-  margin-top: 20px;
-  color: #666;
-}
-
-/* ==========================
-   RESPONSIVE DESIGN
-========================== */
-
-/* Tablet */
-@media (max-width: 992px) {
-  .container {
-    flex-direction: column;
     text-align: center;
-  }
-
-  .welcome, .login-form {
-    flex: none;
-    width: 100%;
-  }
-
-  .welcome {
-    padding: 30px 20px;
-  }
-
-  .login-form {
-    padding: 30px 20px;
-  }
-
-  .welcome h3 {
-    font-size: 36px;
-  }
-
-  .login-form h2 {
-    font-size: 28px;
-  }
+    margin-top: 25px;
+    font-size: 0.95rem;
+    color: var(--text-gray);
 }
 
-/* Mobile */
-@media (max-width: 600px) {
-  .wrapper {
-    padding: 10px;
-  }
-
-  .welcome {
-    padding: 20px;
-  }
-
-  .welcome h1 {
-    font-size: 22px;
-  }
-
-  .welcome h3 {
-    font-size: 28px;
-  }
-
-  .login-form {
-    padding: 25px 15px;
-  }
-
-  .login-form h2 {
-    font-size: 24px;
-  }
-
-  .btn {
-    font-size: 14px;
-  }
-
-  input, label {
-    font-size: 12px;
-  }
+.signup-text a {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
 }
 
-
-/* 🔹 Password field customization */
-#password {
-  border: 1px solid #2196F3;        /* blue border */
-  background: #f0f6ff;              /* light blue tint */
+.signup-text a:hover {
+    text-decoration: underline;
 }
 
-label[for="password"] {
-  color: #2196F3;
-  font-weight: 600;
-}
-
-
-/* 🔹 Email field customization */
-#emailAd{
-  border: 1px solid #4CAF50;        /* green border */
-  background: #f3fff3;              /* subtle green tint */
-}
-
-label[for="emailAd"] {
-  color: #4CAF50;
-  font-weight: 600;
+/* --- Messages/Alerts --- */
+.messages-container {
+    margin-bottom: 20px;
 }
 
 .msg {
-    text-align: center;
-    padding: 10px;
-    border-radius: 5px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .msg-error {
-    background: #ffdddd;
-    color: #a30000;
-    border: 1px solid #ff6b6b;
+    background-color: var(--error-bg);
+    color: var(--error-text);
+    border: 1px solid #fecaca;
 }
 
 .msg-success {
-    background: #ddffdd;
-    color: #007b00;
-    border: 1px solid #6bff6b;
+    background-color: var(--success-bg);
+    color: var(--success-text);
+    border: 1px solid #a7f3d0;
 }
 
+/* --- Responsive Design --- */
+@media (max-width: 900px) {
+    .login-container {
+        flex-direction: column;
+        min-height: auto;
+        max-width: 500px;
+    }
 
+    .brand-section {
+        padding: 40px 30px;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .brand-section p {
+        display: none; /* Hide long text on tablet/mobile to save space */
+    }
+    
+    .logo-lockup {
+        margin-bottom: 10px;
+    }
+
+    .form-section {
+        padding: 40px 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-wrapper {
+        padding: 15px;
+    }
+    
+    .brand-section {
+        padding: 30px 20px;
+    }
+    
+    .brand-section h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0;
+    }
+    
+    .form-section {
+        padding: 30px 20px;
+    }
+    
+    .form-header h2 {
+        font-size: 1.75rem;
+    }
+}

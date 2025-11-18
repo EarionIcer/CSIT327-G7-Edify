@@ -4,103 +4,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Account</title>
+  <title>Edify | Create Account</title>
   <link rel="stylesheet" href="{% static 'css/registerCss.css' %}">
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-  <div class="wrapper">
-    <div class="container">
-      <!-- Left Section -->
-      <div class="welcome">
-        <div class="logo-edify">
-          <div class="logo-box">
-            <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
-          </div>
-          <h1>Edify</h1>
+  <div class="page-wrapper">
+    <div class="register-container">
+      
+      <!-- LEFT SIDE: Brand & Welcome -->
+      <div class="brand-section">
+        <div class="brand-content">
+            <div class="logo-lockup">
+                <div class="logo-box">
+                    <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
+                </div>
+                <h1>Edify</h1>
+            </div>
+            
+            <h3>Join Our Community</h3>
+            <p>
+              Connect with Filipino educators, share vital resources, and accelerate your professional growth.
+            </p>
         </div>
-        <h3>Hello, Welcome!</h3>
-        <p>
-          Join the network of Filipino educators to share resources, collaborate, and access professional development materials.
-        </p>
+        <div class="circle-decoration"></div>
       </div>
 
-      <!-- Right Section -->
-      <div class="login-form">
-        <h2>Create Account</h2>
+      <!-- RIGHT SIDE: Registration Form -->
+      <div class="form-section">
+        <div class="form-header">
+            <h2>Create Account</h2>
+            <p>Fill in your details to get started.</p>
+        </div>
+
+        <!-- Django Messages -->
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="msg {% if message.tags == 'error' %}msg-error{% else %}msg-success{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
 
         <form method="post" action="{% url 'register' %}" autocomplete="off">
           {% csrf_token %}
-          {% if messages %}
-            {% for message in messages %}
-              <p class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
-                {{ message }}
-              </p>
-            {% endfor %}
-          {% endif %}
-
-          <!-- Name fields -->
-          <div class="name-fields">
-            <div class="field" id="first-name-field">
-              <label for="firstName">First Name</label>
-              <input type="text" id="firstName" name="first_name" placeholder="Enter your first name" required>
+          
+          <!-- Name Fields (Side by Side) -->
+          <div class="row-group">
+            <div class="input-group">
+                <label for="firstName">First Name</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" id="firstName" name="first_name" placeholder="First Name" required>
+                </div>
             </div>
-            <div class="field" id="last-name-field">
-              <label for="lastName">Last Name</label>
-              <input type="text" id="lastName" name="last_name" placeholder="Enter your last name" required>
+            <div class="input-group">
+                <label for="lastName">Last Name</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" id="lastName" name="last_name" placeholder="Last Name" required>
+                </div>
             </div>
           </div>
 
           <!-- Email -->
-          <div class="field">
+          <div class="input-group">
             <label for="email">Email Address</label>
-            <input type="email" id="email" name="email" placeholder="Enter your email address" required>
+            <div class="input-wrapper">
+                <i class="fas fa-envelope input-icon"></i>
+                <input type="email" id="email" name="email" placeholder="name@gmail.com" required>
+            </div>
           </div>
 
           <!-- Password -->
-          <div class="field">
+          <div class="input-group">
             <label for="password">Password</label>
-            <div class="password-wrapper">
-              <input type="password" id="password" name="password" placeholder="Enter password" required minlength="8" autocomplete="new-password">
-              <i class="fa-solid fa-eye" id="showPassword"></i>
-              <i class="fa-solid fa-eye-slash" id="hidePassword" style="display: none;"></i>
+            <div class="input-wrapper">
+                <i class="fas fa-lock input-icon"></i>
+                <input type="password" id="password" name="password" placeholder="Create password" required minlength="8" autocomplete="new-password">
+                <i class="fa-solid fa-eye toggle-password" id="showPassword"></i>
+                <i class="fa-solid fa-eye-slash toggle-password" id="hidePassword" style="display: none;"></i>
+            </div>
+            <!-- Validation Tooltip (Hidden by default) -->
+            <div id="passwordModal" class="validation-box" style="display: none;">
+                <p id="passwordMessage"></p>
             </div>
           </div>
 
-          <!-- Password validation message -->
-          <div id="passwordModal" class="modal">
-            <div class="modal-content">
-              <p id="passwordMessage"></p>
-            </div>
-          </div>
-
-          <!-- Confirm password -->
-          <div class="field">
+          <!-- Confirm Password -->
+          <div class="input-group">
             <label for="confirmPassword">Confirm Password</label>
-            <div class="password-wrapper">
-              <input type="password" id="confirmPassword" name="confirm_password" placeholder="Confirm password" required minlength="8" autocomplete="new-password">
-              <i class="fa-solid fa-eye" id="showConfirmPassword"></i>
-              <i class="fa-solid fa-eye-slash" id="hideConfirmPassword" style="display: none;"></i>
+            <div class="input-wrapper">
+                <i class="fas fa-check-double input-icon"></i>
+                <input type="password" id="confirmPassword" name="confirm_password" placeholder="Confirm password" required minlength="8" autocomplete="new-password">
+                <i class="fa-solid fa-eye toggle-password" id="showConfirmPassword"></i>
+                <i class="fa-solid fa-eye-slash toggle-password" id="hideConfirmPassword" style="display: none;"></i>
             </div>
           </div>
 
-          <!-- Terms -->
-          <div class="terms">
-            <input type="checkbox" id="terms" name="terms_agree" required>
-            <label for="terms">
-              I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+          <!-- Terms Checkbox -->
+          <div class="terms-wrapper">
+            <label class="custom-checkbox">
+                <input type="checkbox" id="terms" name="terms_agree" required>
+                <span class="checkmark"></span>
+                <span class="terms-text">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></span>
             </label>
           </div>
 
-          <button type="submit" class="btn">Create Account</button>
-          <p class="signup-text">Already have an account? <a href="{% url 'login' %}">Login</a></p>
+          <button type="submit" class="btn-register">Create Account</button>
+
+          <p class="login-link">
+            Already have an account? <a href="{% url 'login' %}">Log in</a>
+          </p>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- ✅ Password show/hide + validation scripts -->
+  <!-- JavaScript Logic (Maintained functionality) -->
   <script>
     // === Password toggle ===
     const passwordInput = document.getElementById("password");
@@ -110,13 +137,13 @@
     showPassword.addEventListener("click", () => {
       passwordInput.type = "text";
       showPassword.style.display = "none";
-      hidePassword.style.display = "inline";
+      hidePassword.style.display = "block"; // Changed to block/inline-block logic via CSS ideally, but block works here
     });
 
     hidePassword.addEventListener("click", () => {
       passwordInput.type = "password";
       hidePassword.style.display = "none";
-      showPassword.style.display = "inline";
+      showPassword.style.display = "block";
     });
 
     // === Confirm password toggle ===
@@ -127,13 +154,13 @@
     showConfirm.addEventListener("click", () => {
       confirmInput.type = "text";
       showConfirm.style.display = "none";
-      hideConfirm.style.display = "inline";
+      hideConfirm.style.display = "block";
     });
 
     hideConfirm.addEventListener("click", () => {
       confirmInput.type = "password";
       hideConfirm.style.display = "none";
-      showConfirm.style.display = "inline";
+      showConfirm.style.display = "block";
     });
 
     // === Password validation popup ===
@@ -141,38 +168,46 @@
     const modal = document.getElementById("passwordModal");
     const modalMsg = document.getElementById("passwordMessage");
 
-    passInput.addEventListener("blur", () => {
+    passInput.addEventListener("input", validatePass); // Changed to 'input' for real-time feedback
+    passInput.addEventListener("blur", validatePass);
+
+    function validatePass() {
       const password = passInput.value;
       const errors = [];
 
-      if (password.length < 8) errors.push("Password must be at least 8 characters long.");
-      if (!/[A-Z]/.test(password)) errors.push("Password must contain at least one uppercase letter.");
-      if (!/[a-z]/.test(password)) errors.push("Password must contain at least one lowercase letter.");
-      if (!/[0-9]/.test(password)) errors.push("Password must contain at least one number.");
-      if (!/[!@#$%^&*]/.test(password)) errors.push("Password must contain at least one special character (!@#$%^&*).");
+      if (password.length < 8) errors.push("<i class='fas fa-times'></i> At least 8 characters");
+      if (!/[A-Z]/.test(password)) errors.push("<i class='fas fa-times'></i> One uppercase letter");
+      if (!/[a-z]/.test(password)) errors.push("<i class='fas fa-times'></i> One lowercase letter");
+      if (!/[0-9]/.test(password)) errors.push("<i class='fas fa-times'></i> One number");
+      if (!/[!@#$%^&*]/.test(password)) errors.push("<i class='fas fa-times'></i> One special character");
 
-      if (errors.length > 0) {
+      if (errors.length > 0 && password.length > 0) {
         modalMsg.innerHTML = errors.join("<br>");
         modal.style.display = "block";
+        modal.className = "validation-box error";
+      } else if (password.length > 0) {
+         modalMsg.innerHTML = "<i class='fas fa-check'></i> Password looks good!";
+         modal.style.display = "block";
+         modal.className = "validation-box success";
       } else {
         modal.style.display = "none";
       }
-    });
+    }
 
     // === Confirm password match check ===
     const confirmPasswordInput = document.getElementById("confirmPassword");
-    confirmPasswordInput.addEventListener("blur", () => {
-      const password = passwordInput.value.trim();
-      const confirmPassword = confirmPasswordInput.value.trim();
-      if (confirmPassword && password !== confirmPassword) {
-        modalMsg.innerHTML = "Passwords do not match.";
-        modal.style.display = "block";
-      } else {
-        modal.style.display = "none";
-      }
+    
+    confirmPasswordInput.addEventListener("input", () => {
+        const password = passwordInput.value.trim();
+        const confirmPassword = confirmPasswordInput.value.trim();
+        
+        // Only show error if user has typed something in both fields
+        if (confirmPassword && password !== confirmPassword) {
+             confirmPasswordInput.style.borderColor = "#ef4444"; // Red border
+        } else {
+             confirmPasswordInput.style.borderColor = ""; // Reset
+        }
     });
   </script>
-
-  <script src="{% static 'js/func.js' %}"></script>
 </body>
 </html>

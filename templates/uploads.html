@@ -9,129 +9,173 @@
 
 {% block content %}
 <div class="uploads-container">
+  
   <!-- Header -->
-  <div class="header">
-    <div class="header-left">
-      <h1>My Uploads</h1>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">My Uploads</h1>
+      <p class="page-subtitle">Manage and organize your shared learning materials.</p>
     </div>
-    <a href="{% url 'addfiles' %}" class="upload-btn">
-      <i class="fa-solid fa-plus"></i> Add Files
+    <a href="{% url 'addfiles' %}" class="btn-add">
+      <i class="fa-solid fa-plus"></i> Add New File
     </a>
   </div>
 
-  <!-- Attached Files Section -->
-  <div class="attached-header">
-    <div class="attached-left">
-      <h2>Attached Files</h2>
-      <p>Here you can explore your uploaded files</p>
-    </div>
-
-  <div class="attached-actions">
-    <form method="get" action="{% url 'uploads' %}" class="search-filter">
-      <div class="search-container">
-        <input type="text" name="q" placeholder="Search files..." value="{{ query }}">
-        <button type="submit" class="circle-btn">
-          <i class="fa-solid fa-magnifying-glass"></i>
-        </button>
+  <!-- Search & Filter Bar -->
+  <div class="card toolbar-card">
+    <div class="toolbar-content">
+      <div class="toolbar-left">
+        <h3>Attached Files</h3>
+        <span class="file-count">{{ resources|length }} Files</span>
       </div>
 
-      <div class="filter-container">
-        <select name="subject" onchange="this.form.submit()">
-          <option value="All" {% if selected_subject == 'All' %}selected{% endif %}>All</option>
-          {% for subj in subjects %}
-            <option value="{{ subj }}" {% if selected_subject == subj %}selected{% endif %}>{{ subj }}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </form>
-</div>
-
-
-</div>
-
-  <!-- Files Table -->
-  <div class="table-container" id="uploadsTable">
-    <table>
-      <thead>
-        <tr>
-          <th>File Name</th>
-          <th>File Size</th>
-          <th>File Type</th>
-          <th>Subject</th>
-          <th>Grade/Year Level</th>
-          <th style="text-align:center;">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="fileList">
-        {% for file in resources %}
-        <tr>
-          <td>{{ file.title }}</td>
-          <td>{{ file.file_size }}</td>
-          <td>{{ file.file_type }}</td>
-          <td>{{ file.subject }}</td>
-          <td>{{ file.grade }}</td> 
-          <td style="text-align: center;">
-            <div class="action-icons">
-              <!-- View -->
-              <!-- <a href="{{ file.file_path }}" target="_blank" title="View" class="icon-btn">
-                <i class="fa-solid fa-eye icon-view"></i>
-              </a> -->
-
-              <!-- Download -->
-             <a href="{% url 'download_file' file.id %}" title="Download" class="icon-btn">
-              <i class="fa-solid fa-download icon-download"></i>
-            </a>  
-
-              <!-- Edit -->
-              <a href="{% url 'edit_file' file.id %}" class="icon-btn">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </a>
-
-              <!-- Delete -->
-              <form action="{% url 'delete_file' file.id %}" method="post" style="display:inline;" onsubmit="return confirmDelete();">
-                {% csrf_token %}
-                <button type="submit" title="Delete" class="icon-btn">
-                  <i class="fa-solid fa-trash icon-delete"></i>
-                </button>
-              </form>
-
-              <!-- Favorite -->
-              {% if file.is_favorite %}
-                <a href="{% url 'toggle_favorite' file.id %}" title="Unfavorite" class="icon-btn">
-                  <i class="fa-solid fa-star icon-fav" style="color: gold;"></i>
-                </a>
-              {% else %}
-                <a href="{% url 'toggle_favorite' file.id %}" title="Add to Favorites" class="icon-btn">
-                  <i class="fa-regular fa-star icon-fav"></i>
-                </a>
-              {% endif %}
+      <div class="toolbar-actions">
+        <!-- Search -->
+        <form method="get" action="{% url 'uploads' %}" class="search-form">
+            <div class="search-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" name="q" placeholder="Search files..." value="{{ query }}">
             </div>
-          </td>
-        </tr>
+        </form>
 
-        {% empty %}
-        <tr>
-          <td colspan="6" style="text-align:center;">No uploads yet.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <!-- Empty State -->
-    <div id="emptyState" class="empty-state" style="display: none;">
-      <h3>No files uploaded yet.</h3>
-      <p>Upload a file to get started.</p>
+        <!-- Filter -->
+        <form method="get" action="{% url 'uploads' %}" class="filter-form">
+            <div class="select-wrapper">
+                <i class="fa-solid fa-filter filter-icon"></i>
+                <select name="subject" onchange="this.form.submit()">
+                    <option value="All" {% if selected_subject == 'All' %}selected{% endif %}>All Subjects</option>
+                    {% for subj in subjects %}
+                    <option value="{{ subj }}" {% if selected_subject == subj %}selected{% endif %}>{{ subj }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+      </div>
     </div>
   </div>
+
+  <!-- Files Table -->
+  <div class="card table-card">
+    <div class="table-responsive">
+        <table class="custom-table">
+        <thead>
+            <tr>
+            <th>File Details</th>
+            <th>Subject</th>
+            <th>Grade Level</th>
+            <th>Size</th>
+            <th class="text-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="fileList">
+            {% for file in resources %}
+            <tr>
+            <td>
+                <div class="file-cell">
+                    <div class="file-icon-box">
+                        <!-- Icon based on file type logic could go here -->
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <div class="file-meta">
+                        <span class="file-title">{{ file.title }}</span>
+                        <span class="file-type">{{ file.file_type|upper }}</span>
+                    </div>
+                </div>
+            </td>
+            <td><span class="badge subject">{{ file.subject }}</span></td>
+            <td>{{ file.grade }}</td>
+            <td>{{ file.file_size }}</td> 
+            <td>
+                <div class="action-buttons">
+                
+                <!-- 1. VISIBILITY TOGGLE (Power Button) -->
+                <!-- Assuming 'file.visibility' exists, else defaulting to 'private' -->
+                <button 
+                    type="button" 
+                    class="icon-btn btn-visibility {% if file.visibility == 'public' %}public{% else %}private{% endif %}" 
+                    onclick="toggleVisibility(this, '{{ file.id }}')"
+                    title="Toggle Visibility"
+                >
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+
+                <!-- 2. Download -->
+                <a href="{% url 'download_file' file.id %}" title="Download" class="icon-btn btn-download">
+                    <i class="fa-solid fa-download"></i>
+                </a>  
+
+                <!-- 3. Edit -->
+                <a href="{% url 'edit_file' file.id %}" title="Edit" class="icon-btn btn-edit">
+                    <i class="fa-solid fa-pen"></i>
+                </a>
+
+                <!-- 4. Favorite -->
+                <a href="{% url 'toggle_favorite' file.id %}" title="Favorite" class="icon-btn btn-fav {% if file.is_favorite %}active{% endif %}">
+                    <i class="{% if file.is_favorite %}fa-solid{% else %}fa-regular{% endif %} fa-star"></i>
+                </a>
+
+                <!-- 5. Delete -->
+                <form action="{% url 'delete_file' file.id %}" method="post" onsubmit="return confirm('Delete this file?');" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" title="Delete" class="icon-btn btn-delete">
+                    <i class="fa-solid fa-trash"></i>
+                    </button>
+                </form>
+
+                </div>
+            </td>
+            </tr>
+
+            {% empty %}
+            <tr>
+            <td colspan="5">
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+                    <h3>No files found</h3>
+                    <p>Try adjusting your search or upload a new file.</p>
+                </div>
+            </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/uploads.js' %}"></script>
 <script>
-  // Confirm before delete
-  function confirmDelete() {
-    return confirm("Are you sure you want to delete this file?");
+  // Visibility Toggle Logic (AJAX Simulation)
+  function toggleVisibility(btn, fileId) {
+      // Check current state based on class
+      const isPrivate = btn.classList.contains('private');
+      
+      // Optimistic UI Update
+      if (isPrivate) {
+          // Switch to Public (Green)
+          btn.classList.remove('private');
+          btn.classList.add('public');
+          // Optional: Add tooltip update
+          btn.title = "Public (Visible to everyone)";
+      } else {
+          // Switch to Private (Red)
+          btn.classList.remove('public');
+          btn.classList.add('private');
+          btn.title = "Private (Only you)";
+      }
+
+      // TODO: Add actual fetch call here to update backend
+      /*
+      fetch(`/toggle_visibility/${fileId}/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      }).catch(err => {
+          // Revert on error
+          console.error(err);
+      });
+      */
   }
 </script>
 {% endblock %}

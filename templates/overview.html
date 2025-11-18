@@ -7,134 +7,157 @@
 <link rel="stylesheet" href="{% static 'css/overviewCss.css' %}">
 {% endblock %}
 
-
-
 {% block content %}
 
+<div class="overview-container">
 
-<div class="overview-header">
-    <h1>Overview</h1>
-    <hr>
-</div>
-
-<div class="stats-container">
-    <div class="stat-card">
-        <i class="fa-solid fa-upload"></i>
-        <div class="stat-info">
-            <h2>{{ total_uploads }}</h2>
-            <p>Total Uploads</p>
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Overview</h1>
+            <p class="page-subtitle">Welcome back! Here's what's happening with your files.</p>
         </div>
+        <!-- Date/Time display or simple greeting could go here -->
     </div>
 
-    <div class="stat-card">
-        <i class="fa-solid fa-heart"></i>
-        <div class="stat-info">
-            <h2>{{ favorites_count }}</h2>
-            <p>Favorites</p>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <i class="fa-solid fa-book"></i>
-        <div class="stat-info">
-            <h2>{{ subjects_count }}</h2>
-            <p>Subjects</p>
-        </div>
-    </div>
-
-    <div class="stat-card">
-        <i class="fa-solid fa-database"></i>
-        <div class="stat-info">
-            <h2>{{ total_storage }}</h2>
-            <p>Storage Used</p>
-        </div>
-    </div>
-</div>
-
-    <div class="row">
-    <!-- Recent Uploads -->
-    <div class="card recent-uploads">
-        <div class="card-header">
-            <h3>Recent Uploads</h3>
-            <a href="{% url 'uploads' %}">View All</a>
-        </div>
-
-        {% if recent_uploads %}
-            <ul class="file-list">
-                {% for file in recent_uploads %}
-                    <li class="file-item">
-                        <i class="fa-solid fa-file file-icon"></i>
-                        <div class="file-info">
-                            <strong>{{ file.title }}</strong><br>
-                            <span>{{ file.subject }} • {{ file.grade }} • {{ file.file_size }}</span><br>
-                            <small style="color: gray;">{{ file.time_ago }}</small>
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <div class="empty-state">
-                <p>Nothing yet</p>
+    <!-- STATS ROW -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon bg-indigo">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
             </div>
-        {% endif %}
+            <div class="stat-info">
+                <h2>{{ total_uploads|default:"0" }}</h2>
+                <p>Total Uploads</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-red">
+                <i class="fa-solid fa-heart"></i>
+            </div>
+            <div class="stat-info">
+                <h2>{{ favorites_count|default:"0" }}</h2>
+                <p>Favorites</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-green">
+                <i class="fa-solid fa-book-open"></i>
+            </div>
+            <div class="stat-info">
+                <h2>{{ subjects_count|default:"0" }}</h2>
+                <p>Subjects</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon bg-orange">
+                <i class="fa-solid fa-database"></i>
+            </div>
+            <div class="stat-info">
+                <h2>{{ total_storage|default:"0GB" }}</h2>
+                <p>Storage Used</p>
+            </div>
+        </div>
     </div>
 
-    <!-- Favorite Files -->
-    <!-- Favorite Files -->
-        <div class="card favorite-files">
-        <div class="card-header">
-            <h3>Favorites</h3>
-            <a href="{% url 'favorites' %}">View All</a>
+    <!-- PUBLIC FILES SECTION (Formerly Quick Actions) -->
+    <div class="card action-banner">
+        <div class="action-content">
+            <div class="action-text">
+                <h3>Explore Public Resources</h3>
+                <p>Access shared materials from the global educator community.</p>
+            </div>
+            <a href="{% url 'owsearch' %}" class="btn-public">
+                <i class="fa-solid fa-globe"></i> Public Files
+            </a>
         </div>
+    </div>
 
-        {% if favorites %}
-            <ul class="file-list">
-            {% for file in favorites %}
-                <li class="file-item">
-                <a href="{{ file.file_path }}" target="_blank" class="file-link">
-                    <i class="fa-solid fa-heart file-icon" style="color:#e63946;"></i>
-                    <div class="file-info">
-                    <strong>{{ file.title }}</strong><br>
-                    <span>
-                        {{ file.subject|default:"No subject" }} • {{ file.file_size|default:"N/A" }}
-                    </span>
+    <!-- MAIN CONTENT GRID -->
+    <div class="content-grid">
+        
+        <!-- Recent Uploads -->
+        <div class="card recent-files">
+            <div class="card-header">
+                <h3><i class="fa-regular fa-clock"></i> Recent Uploads</h3>
+                <a href="{% url 'uploads' %}" class="view-all">View All</a>
+            </div>
+
+            <div class="card-body">
+                {% if recent_uploads %}
+                    <ul class="file-list">
+                        {% for file in recent_uploads %}
+                            <li class="file-item">
+                                <div class="file-icon-wrapper">
+                                    <i class="fa-solid fa-file-lines"></i>
+                                </div>
+                                <div class="file-details">
+                                    <span class="file-name">{{ file.title }}</span>
+                                    <div class="file-meta">
+                                        <span>{{ file.subject }}</span>
+                                        <span class="dot">•</span>
+                                        <span>{{ file.grade }}</span>
+                                        <span class="dot">•</span>
+                                        <span>{{ file.file_size }}</span>
+                                    </div>
+                                </div>
+                                <span class="file-time">{{ file.time_ago }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+                        <p>No recent uploads found.</p>
+                        <a href="{% url 'uploads' %}" class="btn-small">Upload Now</a>
                     </div>
-                </a>
-                </li>
-            {% endfor %}
-            </ul>
-        {% else %}
-            <p class="no-favorites">No favorite files yet.</p>
-        {% endif %}
+                {% endif %}
+            </div>
         </div>
 
+        <!-- Favorite Files -->
+        <div class="card favorite-files">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-heart text-red-500"></i> Favorites</h3>
+                <a href="{% url 'favorites' %}" class="view-all">View All</a>
+            </div>
+
+            <div class="card-body">
+                {% if favorites %}
+                    <ul class="file-list">
+                        {% for file in favorites %}
+                            <li class="file-item">
+                                <a href="{{ file.file_path }}" target="_blank" class="file-link-wrapper">
+                                    <div class="file-icon-wrapper fav">
+                                        <i class="fa-solid fa-star"></i>
+                                    </div>
+                                    <div class="file-details">
+                                        <span class="file-name">{{ file.title }}</span>
+                                        <div class="file-meta">
+                                            <span>{{ file.subject|default:"General" }}</span>
+                                            <span class="dot">•</span>
+                                            <span>{{ file.file_size|default:"N/A" }}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fa-regular fa-heart"></i></div>
+                        <p>No favorites yet.</p>
+                        <span class="text-sm text-gray">Star files to see them here.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
 </div>
-
-<div class="card quick-actions">
-    <h3>Quick Actions</h3>
-        <div class="action-buttons">
-            <a href="{% url 'uploads' %}" class="action-btn primary">
-                <i class="fa-solid fa-upload"></i> Upload File
-            </a>
-            <a href="{% url 'owsearch' %}" class="action-btn">
-                <i class="fa-solid fa-magnifying-glass"></i> Search
-            </a>
-            <a href="#" class="action-btn">
-                <i class="fa-solid fa-folder-tree"></i> Organize
-            </a>
-     </div>
-</div>
-
-
-{% if messages %}
-  <div class="messages" style="position: fixed; top: 10px; right: 10px; z-index: 9999;">
-    {% for message in messages %}
-      <div class="alert {{ message.tags }}" style="background: #d1e7dd; color: #0f5132; padding: 10px; margin-bottom: 5px; border-radius: 5px;">
-        {{ message }}
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
-
 
 {% endblock %}
