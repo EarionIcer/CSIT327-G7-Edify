@@ -25,6 +25,8 @@ from django.contrib.auth.hashers import check_password
 from django.utils.timezone import make_aware
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+from .models import UploadedFile
+
 
 
 from django.db import ProgrammingError
@@ -57,6 +59,9 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
+from django.http import JsonResponse
+from django.contrib.auth.hashers import make_password
+from .models import CustomUser
 
 
 
@@ -237,24 +242,46 @@ def edit_file(request, file_id):
 
 
 def forgot_password_view(request):
-    if request.method == "POST":
+    # Just render the page — actual logic handled by AJAX
+    return render(request, "forgot_password.html")
+
+
+def reset_password_view(request):
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+
+    action = request.POST.get("action")
+
+    # ----------------------------
+    # 1️⃣ Check Email Exists
+    # ----------------------------
+    if action == "check_email":
         email = request.POST.get("email").strip().lower()
         user = CustomUser.objects.filter(email=email).first()
 
+        if user:
+            return JsonResponse({"status": "success", "message": "Email found!"})
+        else:
+            return JsonResponse({"status": "error", "message": "This email is not registered."})
+
+    # ----------------------------
+    # 2️⃣ Reset Password
+    # ----------------------------
+    elif action == "reset_password":
+        email = request.POST.get("email")
+        new_password = request.POST.get("password")
+
+        user = CustomUser.objects.filter(email=email).first()
         if not user:
-            messages.error(request, "⚠️ No account found with that email.")
-            return redirect("forgot_password")
+            return JsonResponse({"status": "error", "message": "User not found."})
 
-        # ✅ Generate password reset link
-        token = default_token_generator.make_token(user)
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        reset_link = request.build_absolute_uri(f"/reset/{uid}/{token}/")
+        # Hash password correctly
+        user.password = make_password(new_password)
+        user.save()
 
-        # --- In production: send email (for now, just display the link) ---
-        messages.success(request, f"🔗 Password reset link: {reset_link}")
-        return redirect("forgot_password")
+        return JsonResponse({"status": "success", "message": "Password updated!"})
 
-    return render(request, "forgot_password.html")
+    return JsonResponse({"status": "error", "message": "Unknown action"}, status=400)
 
 
 
@@ -426,8 +453,11 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect("overview")
 
+    # Load saved email from cookie for auto-fill
+    saved_email = request.COOKIES.get("saved_email", "")
+
     if request.method == "POST":
-        email = request.POST.get("emailAd").strip().lower()
+        email = request.POST.get("emailAd").strip().lower()  # ← using emailAd
         password = request.POST.get("password")
         remember_me = request.POST.get("remember_me")  # Checkbox value
 
@@ -445,27 +475,37 @@ def login_view(request):
             # ✅ Log in the user
             login(request, user)
 
-            # ✅ “Remember Me” logic
+            # Remember Me expiration
             if remember_me:
-                # Keep the session active for 30 days
-                request.session.set_expiry(60 * 60 * 24 * 30)
+                request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days
             else:
-                # Expire when browser closes
-                request.session.set_expiry(0)
+                request.session.set_expiry(0)  # Close browser = logout
 
-            # ✅ Store user_id for Supabase-related queries
+            # Create response to set cookie
+            # Redirect based on role
+            
+            response = redirect("overview")
+
+
+            # Save email in cookie for auto-fill (works after logout)
+            response.set_cookie("saved_email", email, max_age=60 * 60 * 24 * 30)
+
+            # Store user info in session
             request.session["user_id"] = user.id
             request.session["user_email"] = user.email
 
             messages.success(request, f"👋 Welcome back, {user.first_name or user.email}!")
-            return redirect("overview")
+
+            return response
 
         except Exception as e:
             print("⚠️ Login error:", e)
             messages.error(request, "An error occurred during login.")
             return redirect("login")
 
-    return render(request, "login.html")
+    # Send saved email to template
+    return render(request, "login.html", {"saved_email": saved_email})
+
 
 
 def download_file(request, file_id):
@@ -818,18 +858,29 @@ def about(request):
 
 
 def logout_view(request):
-    # Optional: revoke Supabase session
-    access_token = request.session.get("access_token")
-    if access_token:
-        try:
-            supabase.auth.sign_out()
-        except Exception:
-            pass
+    """
+    Custom logout that supports 'Remember Me':
+    - Removes only authentication data
+    - Keeps session cookie alive if 'remember me' was selected
+    - Does NOT flush entire session (important!)
+    """
 
-    # ✅ Add message before flushing session
+    # ❌ Do NOT use logout(request) because it clears the whole session
+    # logout(request)
+
+    # 🔥 Instead, manually remove auth-related session keys
+    auth_keys = ["_auth_user_id", "_auth_user_backend", "_auth_user_hash"]
+
+    for key in auth_keys:
+        if key in request.session:
+            del request.session[key]
+
+    # Keep other session values like session expiry (remember me)
+    # DO NOT delete request.session['session_key']
+
+    # Optional: clear custom Supabase-related keys
+    request.session.pop("access_token", None)
+
     messages.success(request, "You have been logged out.")
-
-    # Then clear session
-    request.session.flush()
 
     return redirect("login")

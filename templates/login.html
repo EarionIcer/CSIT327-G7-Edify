@@ -38,45 +38,46 @@
         <form method="post">
           {% csrf_token %}
           
-          {% if messages %}
-              {% for message in messages %}
-                  <p style="text-align:center;padding:10px;
-                            border-radius:5px;
-                            margin-bottom:10px;
-                            {% if message.tags == 'error' %}
-                              background:#ffdddd;color:#a30000;border:1px solid #ff6b6b;
-                            {% else %}
-                              background:#ddffdd;color:#007b00;border:1px solid #6bff6b;
-                            {% endif %};
-                            ">
-                    {{ message }}
-                  </p>
-              {% endfor %}
-          {% endif %}
+              {% if messages %}
+                  {% for message in messages %}
+                      <p class="msg 
+                              {% if message.tags == 'error' %}
+                                  msg-error
+                              {% else %}
+                                  msg-success
+                              {% endif %}
+                      ">
+                          {{ message }}
+                      </p>
+                  {% endfor %}
+              {% endif %}
 
-          <label for="emailAd">Email Address</label>
-          <input 
-            type="text" 
-            id="emailAd" 
-            name="emailAd" 
-            placeholder="Enter your email address" 
-            required
-          >
 
-          <label for="password">Password</label>
-          <div class="password-wrapper">
+            <label for="emailAd">Email Address</label>
             <input 
-              type="password" 
-              id="password" 
-              name="password" 
-              placeholder="Enter your password" 
-              required
+                type="text"
+                id="emailAd"
+                name="emailAd"
+                placeholder="Enter your email address"
+                value="{{ saved_email }}"
+                required
             >
-            <i class="fa-solid fa-eye" id="togglePassword"></i>
-          </div>
+
+            <label for="password">Password</label>
+            <div class="password-wrapper">
+                <input 
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    required
+                >
+                <i class="fa-solid fa-eye" id="togglePassword"></i>
+            </div>
+
 
           <div class="extra-options">
-            <label><input type="checkbox"> Remember Me</label>
+            <label><input type="checkbox" name="remember_me"> Remember Me</label>
             <a href="{% url 'forgot_password' %}" class="forgot-link">Forgot Password?</a>
           </div>
 

@@ -1,0 +1,120 @@
+body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: #fff;
+            width: 380px;
+            padding: 50px;
+            border-radius: 14px;
+            box-shadow: 0px 4px 25px rgba(0,0,0,0.09);
+            animation: fadeIn 0.25s ease-in-out;
+            position: relative;
+        }
+
+        /* Back button */
+        .back-link {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            color: #667EEA;
+            font-size: 14px;
+            text-decoration: none;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        h2 {
+            text-align: center;
+            color: #667EEA;
+            margin-bottom: 8px;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #777;
+            margin-top: 0;
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #444;
+            font-size: 14px;
+        }
+
+        input {
+            width: 97%;
+            padding: 12px 5px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            outline: none;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+
+        input:focus {
+            border-color: #667EEA;
+            box-shadow: 0 0 4px rgba(102,126,234,0.4);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .eye-icon {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #999;
+        }
+
+        .btn {
+            width: 100%;
+            background: #667EEA;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            margin-top: 8px;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            background: #5569d4;
+        }
+
+        #fp_message {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+            min-height: 18px;
+            padding: 0 6px;
+        }
+
+        #fp_message.success { color: #2ecc71; }
+        #fp_message.error   { color: #e74c3c; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
