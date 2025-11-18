@@ -8,25 +8,44 @@
 {% endblock %}
 
 {% block content %}
-<div class="favorites-page">
-  <div class="favorites-header">
-    <h1><i class="fa-solid fa-heart" style="color:#ef4444;"></i> My Favorites</h1>
-    <p>Your saved resources for quick access.</p>
+<div class="favorites-container">
+  
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">My Favorites</h1>
+      <p class="page-subtitle">Your saved resources for quick access.</p>
+    </div>
+    <!-- Optional: Add a "Clear All" button or stats here if needed -->
   </div>
 
   {% if favorites %}
-  <!-- Search and Sort Controls -->
-  <div class="favorites-controls">
-    <div class="search-bar">
-      <i class="fa-solid fa-magnifying-glass"></i>
-      <input type="text" id="searchInput" placeholder="Search by title...">
-    </div>
-    <div class="sort-dropdown">
-      <i class="fa-solid fa-filter"></i>
-      <select id="sortSelect">
-        <option value="newest">Date Added — Newest</option>
-        <option value="oldest">Date Added — Oldest</option>
-      </select>
+  <!-- Toolbar (Search & Sort) -->
+  <div class="card toolbar-card">
+    <div class="toolbar-content">
+      
+      <div class="toolbar-left">
+        <span class="fav-count"><i class="fa-solid fa-heart text-red"></i> {{ favorites|length }} Items Saved</span>
+      </div>
+
+      <div class="toolbar-actions">
+        <!-- Search -->
+        <div class="search-wrapper">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="searchInput" placeholder="Search by title...">
+        </div>
+
+        <!-- Sort -->
+        <div class="select-wrapper">
+          <i class="fa-solid fa-arrow-down-short-wide filter-icon"></i>
+          <select id="sortSelect">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="az">Title (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -34,39 +53,71 @@
   <div class="favorites-grid" id="favoritesGrid">
     {% for file in favorites %}
     <div class="favorite-card" data-title="{{ file.title }}" data-date="{{ file.date_added|date:'Y-m-d H:i:s' }}">
-      <div class="fav-top">
-        <i class="fa-solid fa-heart fav-icon"></i>
-        <small class="date">{{ file.date_added|date:"M d, Y" }}</small>
-      </div>
-      <h3>{{ file.title }}</h3>
-
-      <div class="file-info">
-        <p><strong>Subject:</strong> {{ file.subject|default:"—" }}</p>
-        <p><strong>Grade/Year:</strong> {{ file.grade|default:"—" }}</p>
-        <p><strong>File Type:</strong> {{ file.file_type|upper }}</p>
-        <p><strong>File Size:</strong> {{ file.file_size }}</p>
-        <small style="color: gray;">{{ file.formatted_date }}</small>
+      
+      <!-- Card Header -->
+      <div class="fav-card-header">
+        <div class="icon-box">
+           <!-- You can switch icons based on file type if you have logic, defaulting to file -->
+           <i class="fa-solid fa-file-lines"></i>
+        </div>
+       <a href="{% url 'toggle_favorite' file.id %}" class="btn-icon-remove" title="Remove from favorites">
+           <i class="fa-solid fa-heart-circle-minus"></i>
+       </a>
       </div>
 
-      <div class="fav-actions">
-        <a href="{{ file.file_path }}" target="_blank" class="view-btn">
-          <i class="fa-solid fa-eye"></i> View
+      <!-- Card Body -->
+      <div class="fav-card-body">
+        <h3 class="file-title" title="{{ file.title }}">{{ file.title }}</h3>
+        
+        <div class="meta-tags">
+            <span class="badge">{{ file.subject|default:"General" }}</span>
+            <span class="text-muted">•</span>
+            <span class="text-sm">{{ file.file_size }}</span>
+        </div>
+
+        <div class="file-details-list">
+            <div class="detail-row">
+                <span class="label">Grade:</span>
+                <span class="value">{{ file.grade|default:"N/A" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Type:</span>
+                <span class="value">{{ file.file_type|upper }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Added:</span>
+                <span class="value">{{ file.date_added|date:"M d, Y" }}</span>
+            </div>
+        </div>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="fav-card-footer">
+        <a href="{{ file.file_path }}" target="_blank" class="btn-view">
+          <i class="fa-solid fa-eye"></i> Preview
         </a>
-        <a href="{% url 'toggle_favorite' file.id %}" class="remove-btn">
-          <i class="fa-solid fa-trash"></i> Remove
+        <!-- Assuming you might want to download directly -->
+        <a href="{% url 'download_file' file.id %}" class="btn-download" title="Download">
+            <i class="fa-solid fa-download"></i>
         </a>
       </div>
+
     </div>
     {% endfor %}
   </div>
+
   {% else %}
-  <div class="empty-state">
-    <i class="fa-regular fa-heart" style="font-size:3rem; color:#9ca3af;"></i>
+  <!-- Empty State -->
+  <div class="empty-state-card">
+    <div class="empty-icon">
+        <i class="fa-regular fa-heart"></i>
+    </div>
     <h2>No favorites yet</h2>
     <p>Save your favorite lessons, modules, or activities to access them easily here.</p>
-    <a href="{% url 'uploads' %}" class="explore-btn">Explore & Save</a>
+    <a href="{% url 'uploads' %}" class="btn-explore">Explore Files</a>
   </div>
   {% endif %}
+
 </div>
 
 <!-- JavaScript for Search + Sort -->
@@ -76,25 +127,36 @@
   const grid = document.getElementById('favoritesGrid');
 
   // Search filter
-  searchInput.addEventListener('input', () => {
-    const term = searchInput.value.toLowerCase();
-    const cards = grid.querySelectorAll('.favorite-card');
-    cards.forEach(card => {
-      const title = card.dataset.title.toLowerCase();
-      card.style.display = title.includes(term) ? '' : 'none';
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const term = searchInput.value.toLowerCase();
+      const cards = grid.querySelectorAll('.favorite-card');
+      cards.forEach(card => {
+        const title = card.dataset.title.toLowerCase();
+        card.style.display = title.includes(term) ? 'flex' : 'none';
+      });
     });
-  });
+  }
 
-  // Sort by date
-  sortSelect.addEventListener('change', () => {
-    const cards = Array.from(grid.querySelectorAll('.favorite-card'));
-    const sortOrder = sortSelect.value;
-    cards.sort((a, b) => {
-      const dateA = new Date(a.dataset.date);
-      const dateB = new Date(b.dataset.date);
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+  // Sort logic
+  if (sortSelect) {
+    sortSelect.addEventListener('change', () => {
+      const cards = Array.from(grid.querySelectorAll('.favorite-card'));
+      const sortOrder = sortSelect.value;
+      
+      cards.sort((a, b) => {
+        const dateA = new Date(a.dataset.date);
+        const dateB = new Date(b.dataset.date);
+        const titleA = a.dataset.title.toLowerCase();
+        const titleB = b.dataset.title.toLowerCase();
+
+        if (sortOrder === 'newest') return dateB - dateA;
+        if (sortOrder === 'oldest') return dateA - dateB;
+        if (sortOrder === 'az') return titleA.localeCompare(titleB);
+      });
+      
+      cards.forEach(card => grid.appendChild(card));
     });
-    cards.forEach(card => grid.appendChild(card));
-  });
+  }
 </script>
 {% endblock %}

@@ -3,84 +3,162 @@
 
 {% block title %}Add Files - Edify{% endblock %}
 
-{% csrf_token %}
-
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/addfilesCss.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="addfiles-container">
-  <div class="header">
-    <h1>Add New File</h1>
-    <p>Provide file details and upload your learning materials here.</p>
-
+  
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Upload Material</h1>
+      <p class="page-subtitle">Share your knowledge resources with the community or keep them safe.</p>
+    </div>
     <!-- Back button -->
     <a href="{% url 'uploads' %}" class="back-btn">
-      <i class="fa-solid fa-arrow-left"></i> Back to My Uploads
+      <i class="fa-solid fa-arrow-left"></i> Back to Uploads
     </a>
   </div>
 
-  <div class="form-body">
-    <!-- Left section -->
-    <div class="left-section">
-      <label for="title">Title</label>
-      <input type="text" id="title" placeholder="Enter file title" />
+  <div class="card form-wrapper">
+    <!-- Left section: Inputs -->
+    <div class="form-section">
+      
+      <div class="input-group">
+        <label for="title">File Title</label>
+        <input type="text" id="title" class="form-input" placeholder="e.g., Introduction to Algebra" />
+      </div>
 
-      <label for="description">Description</label>
-      <textarea id="description" rows="6" placeholder="Enter description here..."></textarea>
+      <div class="input-group">
+        <label for="description">Description</label>
+        <textarea id="description" class="form-input" rows="5" placeholder="Describe the contents of this file..."></textarea>
+      </div>
 
-      <div class="inline-fields">
-        <div class="field">
+      <div class="row-group">
+        <div class="input-group">
           <label for="subject">Subject</label>
-          <input type="text" id="subject" placeholder="Enter subject" />
+          <div class="input-wrapper">
+            <i class="fa-solid fa-book input-icon"></i>
+            <input type="text" id="subject" class="form-input with-icon" placeholder="Math, Science..." />
+          </div>
         </div>
 
-        <div class="field">
+        <div class="input-group">
           <label for="grade">Grade / Year Level</label>
-          <input type="text" id="grade" placeholder="Enter grade or year" />
+          <div class="input-wrapper">
+            <i class="fa-solid fa-graduation-cap input-icon"></i>
+            <input type="text" id="grade" class="form-input with-icon" placeholder="Grade 10..." />
+          </div>
         </div>
       </div>
+
     </div>
 
-    <!-- Right section -->
-    <div class="right-section">
+    <!-- Divider (Vertical on Desktop, Horizontal on Mobile) -->
+    <div class="divider-line"></div>
+
+    <!-- Right section: Upload & Actions -->
+    <div class="upload-section">
+      
+      <label class="section-label">File Attachment</label>
       <div class="upload-box" id="uploadArea">
-        <i class="fa-solid fa-cloud-arrow-up"></i>
-        <p>Click here or drag and drop your file</p>
+        <div class="upload-content" id="uploadPlaceholder">
+            <div class="icon-circle">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <p class="upload-text">Click to browse or drag file here</p>
+            <span class="upload-hint">Supports PDF, DOCX, PPTX, JPG</span>
+        </div>
+        
+        <!-- File Preview State (Hidden by default) -->
+        <div class="file-preview" id="filePreview" style="display: none;">
+            <i class="fa-solid fa-file-lines file-icon-large"></i>
+            <div class="file-info">
+                <span id="fileName" class="file-name">filename.pdf</span>
+                <span id="fileSize" class="file-size">0 KB</span>
+            </div>
+            <button type="button" id="removeFileBtn" class="remove-btn"><i class="fa-solid fa-times"></i></button>
+        </div>
+
         <input type="file" id="fileInput" hidden />
       </div>
 
-      <button class="upload-btn" id="uploadBtn">
-        <i class="fa-solid fa-upload"></i> Upload File
+      <!-- VISIBILITY TOGGLE (Requested Feature) -->
+      <div class="visibility-wrapper">
+        <label class="section-label">Visibility Settings</label>
+        <!-- Default is 'private' (Red) -->
+        <button type="button" id="visibilityBtn" class="visibility-btn private">
+            <div class="vis-icon">
+                <i class="fa-solid fa-lock" id="visIcon"></i>
+            </div>
+            <div class="vis-info">
+                <span id="visTitle">Private File</span>
+                <span id="visDesc">Only you can see this file.</span>
+            </div>
+            <div class="vis-status">
+                <i class="fa-solid fa-power-off"></i>
+            </div>
+        </button>
+        <!-- Hidden input to store value for backend -->
+        <input type="hidden" id="fileVisibility" value="private">
+      </div>
+
+      <button class="btn-submit" id="uploadBtn">
+        <i class="fa-solid fa-upload"></i> Upload Material
       </button>
+
     </div>
   </div>
 </div>
 
 {% block extra_js %}
 <script>
+  // === 1. VISIBILITY TOGGLE LOGIC ===
+  const visBtn = document.getElementById('visibilityBtn');
+  const visIcon = document.getElementById('visIcon');
+  const visTitle = document.getElementById('visTitle');
+  const visDesc = document.getElementById('visDesc');
+  const visInput = document.getElementById('fileVisibility');
+
+  visBtn.addEventListener('click', () => {
+    if (visBtn.classList.contains('private')) {
+        // Switch to Public (Green)
+        visBtn.classList.remove('private');
+        visBtn.classList.add('public');
+        visIcon.className = 'fa-solid fa-globe';
+        visTitle.textContent = 'Public File';
+        visDesc.textContent = 'Visible to the Edify community.';
+        visInput.value = 'public';
+    } else {
+        // Switch to Private (Red)
+        visBtn.classList.remove('public');
+        visBtn.classList.add('private');
+        visIcon.className = 'fa-solid fa-lock';
+        visTitle.textContent = 'Private File';
+        visDesc.textContent = 'Only you can see this file.';
+        visInput.value = 'private';
+    }
+  });
+
+  // === 2. FILE UPLOAD UI LOGIC ===
   const uploadBox = document.getElementById("uploadArea");
   const fileInput = document.getElementById("fileInput");
+  const placeholder = document.getElementById("uploadPlaceholder");
+  const filePreview = document.getElementById("filePreview");
+  const fileNameSpan = document.getElementById("fileName");
+  const fileSizeSpan = document.getElementById("fileSize");
+  const removeBtn = document.getElementById("removeFileBtn");
 
-  // Create elements for text and file display
-  const defaultText = document.createElement("p");
-  defaultText.textContent = "Drag & Drop or Click to Upload";
-  defaultText.style.color = "#777";
-  defaultText.style.fontWeight = "500";
-  defaultText.style.marginTop = "10px";
+  // Click trigger
+  uploadBox.addEventListener("click", (e) => {
+      if (e.target !== removeBtn && !removeBtn.contains(e.target)) {
+        fileInput.click();
+      }
+  });
 
-  const fileNameDisplay = document.createElement("p");
-  fileNameDisplay.style.color = "#000";
-  fileNameDisplay.style.fontWeight = "500";
-  fileNameDisplay.style.marginTop = "10px";
-  fileNameDisplay.style.display = "none"; // hidden initially
-
-  uploadBox.appendChild(defaultText);
-  uploadBox.appendChild(fileNameDisplay);
-
-  // Handle click and drag-drop
-  uploadBox.addEventListener("click", () => fileInput.click());
+  // Drag & Drop Visuals
   uploadBox.addEventListener("dragover", e => {
     e.preventDefault();
     uploadBox.classList.add("dragover");
@@ -89,39 +167,54 @@
   uploadBox.addEventListener("drop", e => {
     e.preventDefault();
     uploadBox.classList.remove("dragover");
-    fileInput.files = e.dataTransfer.files;
-    showSelectedFile();
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        updateFileDisplay();
+    }
   });
 
-  // When user picks file manually
-  fileInput.addEventListener("change", showSelectedFile);
+  // File Selection
+  fileInput.addEventListener("change", updateFileDisplay);
 
-  function showSelectedFile() {
+  function updateFileDisplay() {
     const file = fileInput.files[0];
     if (file) {
-      const fileSizeKB = (file.size / 1024).toFixed(1);
-      // Hide default text, show file info
-      defaultText.style.display = "none";
-      fileNameDisplay.style.display = "block";
-      fileNameDisplay.textContent = `📄 ${file.name} (${fileSizeKB} KB)`;
-    } else {
-      // Reset to default state
-      fileNameDisplay.style.display = "none";
-      defaultText.style.display = "block";
+      const sizeKB = (file.size / 1024).toFixed(1);
+      fileNameSpan.textContent = file.name;
+      fileSizeSpan.textContent = sizeKB + " KB";
+      
+      placeholder.style.display = 'none';
+      filePreview.style.display = 'flex';
+      uploadBox.classList.add('has-file');
     }
   }
 
-  // Upload logic
+  // Remove File
+  removeBtn.addEventListener("click", (e) => {
+      e.stopPropagation(); // Prevent triggering fileInput click
+      fileInput.value = ""; // Clear input
+      placeholder.style.display = 'flex';
+      filePreview.style.display = 'none';
+      uploadBox.classList.remove('has-file');
+  });
+
+  // === 3. UPLOAD SUBMISSION LOGIC ===
   document.getElementById("uploadBtn").addEventListener("click", async () => {
     const file = fileInput.files[0];
     const title = document.getElementById("title").value.trim();
     const subject = document.getElementById("subject").value.trim();
     const grade = document.getElementById("grade").value.trim();
     const description = document.getElementById("description").value.trim();
+    const visibility = document.getElementById("fileVisibility").value;
 
     if (!file) return alert("Please select a file first!");
-    if (!title || !subject || !grade || !description)
-      return alert("Please fill out all fields!");
+    if (!title || !subject || !grade) return alert("Please fill out Title, Subject, and Grade.");
+
+    // Visual Feedback
+    const btn = document.getElementById("uploadBtn");
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+    btn.disabled = true;
 
     const formData = new FormData();
     formData.append("file", file);
@@ -129,88 +222,39 @@
     formData.append("subject", subject);
     formData.append("grade", grade);
     formData.append("description", description);
+    formData.append("visibility", visibility); // Sending the toggle state
 
     try {
       const response = await fetch("/upload_file/", {
         method: "POST",
         body: formData,
         headers: {
-          "X-CSRFToken": getCookie("csrftoken")
-        },
-        credentials: "include" // ✅ Ensures session cookie is sent
+          "X-CSRFToken": "{{ csrf_token }}" // Django Template Tag
+        }
       });
 
-      // ✅ Handle "not logged in" case
       if (response.status === 401) {
-        alert("You must log in first before uploading.");
+        alert("Session expired. Please log in again.");
         window.location.href = "/login/";
         return;
       }
 
       const result = await response.json();
 
-      alert(result.message || result.error);
+      if (result.status === 'success' || response.ok) {
+         alert("File uploaded successfully!");
+         window.location.href = "{% url 'uploads' %}"; // Redirect
+      } else {
+         alert(result.message || "Upload failed.");
+         btn.innerHTML = originalText;
+         btn.disabled = false;
+      }
     } catch (err) {
       alert("Error uploading file: " + err.message);
+      btn.innerHTML = originalText;
+      btn.disabled = false;
     }
-
   });
-
-  // Django CSRF helper
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-      const cookies = document.cookie.split(";");
-      for (let cookie of cookies) {
-        cookie = cookie.trim();
-        if (cookie.startsWith(name + "=")) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  }
 </script>
-
-
-<script>
-    const form = document.getElementById('uploadForm');
-
-    form.addEventListener('submit', function(event) {
-      // Get fields
-      const title = form.querySelector('[name="title"]');
-      const subject = form.querySelector('[name="subject"]');
-      const grade = form.querySelector('[name="grade"]');
-      const description = form.querySelector('[name="description"]');
-      const file = form.querySelector('[name="file"]');
-
-      let isValid = true;
-
-      // Helper to validate and show/hide messages
-      function validateField(field, errorId) {
-        const error = document.getElementById(errorId);
-        if (!field.value.trim()) {
-          error.style.display = 'block';
-          field.classList.add('invalid');
-          isValid = false;
-        } else {
-          error.style.display = 'none';
-          field.classList.remove('invalid');
-        }
-      }
-
-      // Validate all fields
-      validateField(title, 'titleError');
-      validateField(subject, 'subjectError');
-      validateField(grade, 'gradeError');
-      validateField(description, 'descriptionError');
-      validateField(file, 'fileError');
-
-      if (!isValid) {
-        event.preventDefault(); // Stop the form from submitting
-      }
-    });
-  </script>
 {% endblock %}
 {% endblock %}

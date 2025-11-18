@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+
+
+<link rel="stylesheet" href="{% static 'css/aboutCss.css' %}" />
+  {% block extra_css %}{% endblock %}
+<!-- FontAwesome for Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<div class="about-container">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <h1 class="page-title">About Edify</h1>
+        <p class="page-subtitle">
+            Empowering Filipino Educators through Collaboration and Resource Sharing.
+        </p>
+    </div>
+
+    <!-- PROJECT OVERVIEW SECTION (New) -->
+    <div class="section-card">
+        <h2 class="section-title"><i class="fas fa-lightbulb"></i> Project Overview</h2>
+        
+        <p class="overview-text">
+            Filipino educators face challenges such as excessive administrative workload, limited access to
+            relevant instructional materials, and lack of a centralized platform for professional development
+            and collaboration.
+        </p>
+
+        <p class="overview-text highlight-text">
+            Edify addresses these issues by:
+        </p>
+
+        <ul class="overview-list">
+            <li>Providing a centralized repository for lesson plans, activities, and multimedia resources.</li>
+            <li>Allowing educators to search, upload, and share content efficiently.</li>
+        </ul>
+
+        <p class="overview-text mb-0">
+            This project enhances teacher productivity, promotes continuous learning, and fosters a strong
+            professional community, while offering hands-on experience in database management, web
+            development, and user interface design.
+        </p>
+    </div>
+
+    <!-- TECH STACK SECTION -->
+    <div class="section-card">
+        <h2 class="section-title"><i class="fas fa-layer-group"></i> Technology Stack</h2>
+        <div class="tech-grid">
+            <div class="tech-item">
+                <i class="fab fa-html5" style="color: #e34c26;"></i>
+                <span class="tech-name">HTML/CSS/JS</span>
+            </div>
+            <div class="tech-item">
+                <i class="fab fa-python" style="color: #3776ab;"></i>
+                <span class="tech-name">Django</span>
+            </div>
+            <div class="tech-item">
+                <i class="fas fa-bolt" style="color: #3ecf8e;"></i>
+                <span class="tech-name">Supabase</span>
+            </div>
+            <div class="tech-item">
+                <i class="fab fa-github" style="color: #333;"></i>
+                <span class="tech-name">GitHub</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEAM SECTION -->
+    <div class="section-card mb-0">
+        <h2 class="section-title"><i class="fas fa-users"></i> Meet the Team</h2>
+        <div class="team-grid">
+            
+            <!-- Member 1 -->
+            <div class="team-card">
+                <div class="member-avatar">CB</div>
+                <h3 class="member-name">Christian Jay B. Basinillo</h3>
+                <span class="member-role">Lead Developer</span>
+                <a href="mailto:christianjay.basinillo@cit.edu" class="member-email">christianjay.basinillo@cit.edu</a>
+            </div>
+
+            <!-- Member 2 -->
+            <div class="team-card">
+                <div class="member-avatar">EB</div>
+                <h3 class="member-name">Earion Icer O. Bramwell</h3>
+                <span class="member-role">Back-end Developer</span>
+                <a href="mailto:earionicer.bramwell@cit.edu" class="member-email">earionicer.bramwell@cit.edu</a>
+            </div>
+
+            <!-- Member 3 -->
+            <div class="team-card">
+                <div class="member-avatar">WC</div>
+                <h3 class="member-name">Wilfred John R. Carin</h3>
+                <span class="member-role">Front-end Developer</span>
+                <a href="mailto:wilfredjohn.carin@cit.edu" class="member-email">wilfredjohn.carin@cit.edu</a>
+            </div>
+
+            <!-- Member 4 -->
+            <div class="team-card">
+                <div class="member-avatar">IC</div>
+                <h3 class="member-name">Isaac Raphael P. Cortes</h3>
+                <span class="member-role">Product Owner</span>
+                <a href="mailto:isaacraphael.cortes@cit.edu" class="member-email">isaacraphael.cortes@cit.edu</a>
+            </div>
+
+            <!-- Member 5 -->
+            <div class="team-card">
+                <div class="member-avatar">JC</div>
+                <h3 class="member-name">John Aaron L. Cañadilla</h3>
+                <span class="member-role">Scrum Master</span>
+                <a href="mailto:johnaaron.canadilla@cit.edu" class="member-email">johnaaron.canadilla@cit.edu</a>
+            </div>
+
+            <!-- Member 6 -->
+            <div class="team-card">
+                <div class="member-avatar">JC</div>
+                <h3 class="member-name">Johndaniel A. Canonigo</h3>
+                <span class="member-role">Business Analyst</span>
+                <a href="mailto:johndaniel.canonigo@cit.edu" class="member-email">johndaniel.canonigo@cit.edu</a>
+            </div>
+
+            <!-- Member 7 -->
+            <div class="team-card">
+                <div class="member-avatar">KD</div>
+                <h3 class="member-name">Kenn Xavier C. Dabon</h3>
+                <span class="member-role">Business Analyst</span>
+                <a href="mailto:kenn.dabon@cit.edu" class="member-email">kenn.dabon@cit.edu</a>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

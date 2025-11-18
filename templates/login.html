@@ -4,67 +4,89 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Login</title>
+  <title>Edify | Login</title>
 
   <!-- CSS -->
   <link rel="stylesheet" href="{% static 'css/loginCss.css' %}">
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-  <div class="wrapper">
-    <div class="container">
+  <div class="page-wrapper">
+    <div class="login-container">
       
-      <!-- LEFT SIDE -->
-      <div class="welcome">
-        <div class="logo-edify">
-          <div class="logo-box">
-            <img src="{% static 'img/Edify-logo.png' %}" alt="Logo">
-          </div>
-          <h1>Edify</h1>
+      <!-- LEFT SIDE (Brand & Welcome) -->
+      <div class="brand-section">
+        <div class="brand-content">
+            <div class="logo-lockup">
+                <div class="logo-box">
+                    <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
+                </div>
+                <h1>Edify</h1>
+            </div>
+            
+            <h3>Welcome Back!</h3>
+            <p>
+                Ready to access your resources? Sign in to continue sharing materials,
+                collaborating with fellow educators, and accessing your personalized
+                professional development courses.
+            </p>
         </div>
-
-        <h3>Welcome Back!</h3>
-        <p>
-          Ready to access your resources? Sign in to continue sharing materials,
-          collaborating with fellow educators, and accessing your personalized
-          professional development courses.
-        </p>
+        
+        <!-- Decorative Circle/Shape -->
+        <div class="circle-decoration"></div>
       </div>
 
-      <!-- RIGHT SIDE -->
-      <div class="login-form">
-        <h2>Login</h2>
+      <!-- RIGHT SIDE (Form) -->
+      <div class="form-section">
+        <div class="form-header">
+            <h2>Sign In</h2>
+            <p>Please enter your credentials to access your account.</p>
+        </div>
+
+        <!-- Django Messages -->
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="msg {% if message.tags == 'error' %}msg-error{% else %}msg-success{% endif %}">
+                        {% if message.tags == 'error' %}
+                            <i class="fas fa-exclamation-circle"></i>
+                        {% else %}
+                            <i class="fas fa-check-circle"></i>
+                        {% endif %}
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <form method="post">
           {% csrf_token %}
           
-              {% if messages %}
-                  {% for message in messages %}
-                      <p class="msg 
-                              {% if message.tags == 'error' %}
-                                  msg-error
-                              {% else %}
-                                  msg-success
-                              {% endif %}
-                      ">
-                          {{ message }}
-                      </p>
-                  {% endfor %}
-              {% endif %}
-
-
+          <!-- Email Input -->
+          <div class="input-group">
             <label for="emailAd">Email Address</label>
-            <input 
-                type="text"
-                id="emailAd"
-                name="emailAd"
-                placeholder="Enter your email address"
-                value="{{ saved_email }}"
-                required
-            >
+            <div class="input-wrapper">
+                <i class="fas fa-envelope input-icon"></i>
+                <input 
+                    type="text"
+                    id="emailAd"
+                    name="emailAd"
+                    placeholder="name@school.edu"
+                    value="{{ saved_email }}"
+                    required
+                >
+            </div>
+          </div>
 
+          <!-- Password Input -->
+          <div class="input-group">
             <label for="password">Password</label>
-            <div class="password-wrapper">
+            <div class="input-wrapper">
+                <i class="fas fa-lock input-icon"></i>
                 <input 
                     type="password"
                     id="password"
@@ -72,19 +94,26 @@
                     placeholder="Enter your password"
                     required
                 >
-                <i class="fa-solid fa-eye" id="togglePassword"></i>
+                <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
             </div>
+          </div>
 
-
-          <div class="extra-options">
-            <label><input type="checkbox" name="remember_me"> Remember Me</label>
+          <!-- Options (Remember / Forgot) -->
+          <div class="form-actions">
+            <label class="remember-me">
+                <input type="checkbox" name="remember_me"> 
+                <span>Remember Me</span>
+            </label>
             <a href="{% url 'forgot_password' %}" class="forgot-link">Forgot Password?</a>
           </div>
 
-          <button type="submit" class="btn">Login</button>
+          <!-- Submit Button -->
+          <button type="submit" class="btn-login">
+            Login <i class="fas fa-arrow-right"></i>
+          </button>
 
           <p class="signup-text">
-            Don't have an account? <a href="{% url 'register' %}">Sign up</a>
+            Don't have an account? <a href="{% url 'register' %}">Sign up now</a>
           </p>
         </form>
       </div>
@@ -92,7 +121,7 @@
     </div>
   </div>
 
-  <!-- JavaScript for show/hide password -->
+  <!-- JavaScript -->
   <script>
     const toggleBtn = document.getElementById("togglePassword");
     const passwordInput = document.getElementById("password");
@@ -100,8 +129,10 @@
     toggleBtn.addEventListener("click", () => {
       const type = passwordInput.type === "password" ? "text" : "password";
       passwordInput.type = type;
-      toggleBtn.classList.toggle("fa-eye-slash");
+      
+      // Toggle Icon Class
       toggleBtn.classList.toggle("fa-eye");
+      toggleBtn.classList.toggle("fa-eye-slash");
     });
   </script>
 

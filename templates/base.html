@@ -6,129 +6,129 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Edify{% endblock %}</title>
 
+  <!-- Google Fonts (Matches Login/Profile) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+
+  <!-- Base CSS -->
   <link rel="stylesheet" href="{% static 'css/navbarCss.css' %}" />
   {% block extra_css %}{% endblock %}
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-
-  <!-- ✅ Message Styles -->
-  <style>
-    .messages {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 9999;
-    }
-
-    .alert {
-      background: #6b6cff;
-      color: #fff;
-      padding: 12px 18px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      animation: fadeIn 0.4s ease;
-      font-family: "Poppins", sans-serif;
-      font-size: 0.95rem;
-    }
-
-    .alert.success { background-color: #4caf50; }
-    .alert.info { background-color: #2196f3; }
-    .alert.warning { background-color: #ff9800; }
-    .alert.error { background-color: #f44336; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeOut {
-      from { opacity: 1; transform: translateY(0); }
-      to { opacity: 0; transform: translateY(-10px); }
-    }
-  </style>
 </head>
 
 <body>
-  <!-- ✅ Global Django Messages -->
+
+  <!-- ✅ Global Django Messages (Floating Toast) -->
   {% if messages %}
-  <div class="messages" id="messageContainer">
+  <div class="messages-container">
     {% for message in messages %}
-      <div class="alert {{ message.tags }}">{{ message }}</div>
+      <div class="msg {% if message.tags == 'error' %}msg-error{% else %}msg-success{% endif %}">
+        {% if message.tags == 'error' %}
+            <i class="fas fa-exclamation-circle"></i>
+        {% else %}
+            <i class="fas fa-check-circle"></i>
+        {% endif %}
+        {{ message }}
+      </div>
     {% endfor %}
   </div>
   {% endif %}
 
-  <div class="page-container">
+  <div class="page-wrapper">
+    
     <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar">
+    <aside class="sidebar">
+      <!-- Logo Section -->
       <div class="sidebar-header">
         <div class="logo-box">
-          <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo" class="logo-img">
+          <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo">
         </div>
         <h1>Edify</h1>
       </div>
 
-      <ul class="menu main-menu">
-        <li class="{% if request.path == '/' or request.path == '/overview/' %}active{% endif %}" id="overviewBtn">
-          <a href="{% url 'overview' %}">
-            <i class="fa-solid fa-table-columns icon"></i>
-            <span class="text">Overview</span>
-          </a>
-        </li>
-        <li class="{% if request.path == '/uploads/' %}active{% endif %}" id="uploadsBtn">
-          <a href="{% url 'uploads' %}">
-            <i class="fa-solid fa-upload icon"></i>
-            <span class="text">Uploads</span>
-          </a>
-        </li>
-        <li class="{% if request.path == '/favorites/' %}active{% endif %}" id="favoritesBtn">
-          <a href="{% url 'favorites' %}">
-            <i class="fa-solid fa-heart icon"></i>
-            <span class="text">Favorites</span>
-          </a>
-        </li>
-        <li class="{% if request.path == '/profile/' %}active{% endif %}">
-          <a href="{% url 'profiled' %}">
-            <i class="fa-solid fa-user icon"></i>
-            <span class="text">Profile</span>
-          </a>
-        </li>
-        <li class="{% if request.path == '/about/' %}active{% endif %}">
-          <a href="{% url 'about' %}">
-            <i class="fa-solid fa-circle-info icon"></i>
-            <span class="text">About</span>
-          </a>
-        </li>
-      </ul>
+      <!-- Main Menu -->
+      <nav class="sidebar-menu">
+        <ul class="menu-list">
+          
+          <!-- Overview -->
+          <li class="menu-item {% if request.path == '/' or request.path == '/overview/' %}active{% endif %}">
+            <a href="{% url 'overview' %}">
+              <i class="fa-solid fa-table-columns icon"></i> <!-- Fixed Icon -->
+              <span class="text">Overview</span>
+            </a>
+          </li>
 
-      <ul class="menu bottom-menu">
-        <li onclick="window.location.href='{% url 'logout' %}'">
-          <a href="{% url 'logout' %}">
-            <i class="fa-solid fa-right-from-bracket icon"></i>
-            <span class="text">Sign out</span>
-          </a>
-        </li>
-      </ul>
+          <!-- Uploads -->
+          <li class="menu-item {% if request.path == '/uploads/' %}active{% endif %}">
+            <a href="{% url 'uploads' %}">
+              <i class="fa-solid fa-cloud-arrow-up icon"></i>
+              <span class="text">Uploads</span>
+            </a>
+          </li>
+
+          <!-- Favorites -->
+          <li class="menu-item {% if request.path == '/favorites/' %}active{% endif %}">
+            <a href="{% url 'favorites' %}">
+              <i class="fa-solid fa-heart icon"></i>
+              <span class="text">Favorites</span>
+            </a>
+          </li>
+
+          <!-- Profile -->
+          <li class="menu-item {% if request.path == '/profile/' %}active{% endif %}">
+            <a href="{% url 'profiled' %}">
+              <i class="fa-solid fa-user-circle icon"></i>
+              <span class="text">Profile</span>
+            </a>
+          </li>
+
+          <!-- About -->
+          <li class="menu-item {% if request.path == '/about/' %}active{% endif %}">
+            <a href="{% url 'about' %}">
+              <i class="fa-solid fa-circle-info icon"></i>
+              <span class="text">About</span>
+            </a>
+          </li>
+
+        </ul>
+      </nav>
+
+      <!-- Bottom Menu (Logout) -->
+      <div class="sidebar-footer">
+        <ul class="menu-list">
+          <li class="menu-item logout">
+            <a href="{% url 'logout' %}">
+              <i class="fa-solid fa-arrow-right-from-bracket icon"></i>
+              <span class="text">Sign out</span>
+            </a>
+          </li>
+        </ul>
+      </div>
     </aside>
 
-    <!-- Main Content -->
-    <section class="content" id="mainContent">
+    <!-- Main Content Area -->
+    <main class="main-content">
       {% block content %}{% endblock %}
-    </section>
+    </main>
+
   </div>
 
+  <!-- JS Scripts -->
   <script src="{% static 'js/overview.js' %}"></script>
   {% block extra_js %}{% endblock %}
 
-  <!-- ✅ Auto-hide messages after 3s -->
+  <!-- Auto-hide messages script -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      const messages = document.querySelectorAll(".alert");
+      const messages = document.querySelectorAll(".msg");
       messages.forEach(msg => {
+        // Wait 4 seconds, then fade out
         setTimeout(() => {
-          msg.style.animation = "fadeOut 0.5s ease forwards";
+          msg.style.opacity = '0';
+          msg.style.transform = 'translateY(-20px)';
           setTimeout(() => msg.remove(), 500);
-        }, 3000);
+        }, 4000);
       });
     });
   </script>

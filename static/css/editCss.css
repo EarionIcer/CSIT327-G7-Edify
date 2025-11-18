@@ -1,3 +1,5 @@
+/* Reuse AddFiles styles for consistency */
+
 /* Matches Global Variables */
 :root {
     --primary-color: #4f46e5;
@@ -261,8 +263,8 @@ textarea.form-input {
     position: absolute;
     top: 10px;
     right: 10px;
-    background: #fee2e2;
-    color: #ef4444;
+    background: #eef2ff;
+    color: var(--primary-color);
     border: none;
     width: 30px;
     height: 30px;
@@ -275,11 +277,11 @@ textarea.form-input {
 }
 
 .remove-btn:hover {
-    background: #ef4444;
+    background: var(--primary-color);
     color: white;
 }
 
-/* --- VISIBILITY TOGGLE BTN (The Request) --- */
+/* --- VISIBILITY TOGGLE BTN --- */
 .visibility-wrapper {
     margin-bottom: 25px;
 }

@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'css/profileCss.css' %}" />
+  {% block extra_css %}{% endblock %}
+
+<!-- Add FontAwesome for Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<div class="profile-page-container">
+    
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Profile Settings</h1>
+            <p class="page-subtitle">Manage your personal information and security.</p>
+        </div>
+        <!-- Optional Status Badge -->
+        <div class="status-badge">
+            <span class="status-dot"></span> Active Account
+        </div>
+    </div>
+
+    <div class="profile-grid">
+
+        <!-- LEFT SIDEBAR: Avatar -->
+        <div class="card">
+            <div class="card-body avatar-section">
+                
+                <!-- Clickable Avatar Wrapper -->
+                <div class="avatar-wrapper" onclick="document.getElementById('profile_image_input').click()">
+                    {% if user.profile_picture %}
+                        <img id="avatar-preview" src="{{ user.profile_picture }}" class="avatar-img">
+                    {% else %}
+                        <!-- Show hidden img tag for JS preview consistency, but display placeholder initially -->
+                        <img id="avatar-preview" src="" class="avatar-img hidden">
+                        <div id="avatar-placeholder" class="avatar-placeholder">
+                            {{ user.first_name|slice:":1"|upper }}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Camera Overlay -->
+                    <div class="camera-overlay">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                </div>
+
+                <!-- Hidden File Input -->
+                <input type="file" id="profile_image_input" name="profile_image" accept="image/*" class="hidden" onchange="previewImage(this)">
+
+                <!-- Save Avatar Button (Hidden initially) -->
+                <button id="save-avatar-btn" onclick="uploadAvatar()" class="btn btn-primary btn-sm hidden" style="margin-bottom: 15px;">
+                    Save Picture
+                </button>
+
+                <h2 class="user-info-name">{{ user.first_name }} {{ user.last_name }}</h2>
+                <p class="user-info-handle">@{{ user.username }}</p>
+
+                <!-- User ID Box -->
+                <div class="user-id-box">
+                    <div class="user-id-label">User ID</div>
+                    <div class="user-id-value">{{ request.session.user_id }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT CONTENT: Forms -->
+        <div class="right-content">
+
+            <!-- 1. Personal Details Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-user-circle"></i> Personal Details</h3>
+                </div>
+                <div class="card-body">
+                    <form id="profile-info-form" onsubmit="handleProfileUpdate(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">First Name</label>
+                                <input type="text" id="first_name" value="{{ user.first_name }}" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" id="last_name" value="{{ user.last_name }}" class="form-input">
+                            </div>
+                            <div class="form-group full-width">
+                                <label class="form-label">Username</label>
+                                <div class="input-group">
+                                    <span class="input-prefix">@</span>
+                                    <input type="text" id="username" value="{{ user.username }}" class="form-input">
+                                </div>
+                            </div>
+                            <div class="form-group full-width">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" value="{{ user.email }}" readonly class="form-input">
+                                <p class="helper-text">Contact support to change your email address.</p>
+                            </div>
+                        </div>
+                        <div class="btn-wrapper">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 2. Security Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title" style="color: #374151;"><i class="fas fa-lock" style="color: var(--danger-color);"></i> Security</h3>
+                </div>
+                <div class="card-body">
+                    <form id="password-change-form" onsubmit="handlePasswordChange(event)">
+                        <div class="form-group">
+                            <label class="form-label">Current Password</label>
+                            <input type="password" id="old_password" required placeholder="Enter current password" class="form-input">
+                        </div>
+                        
+                        <div class="divider"></div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">New Password</label>
+                                <input type="password" id="new_password" required class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Confirm Password</label>
+                                <input type="password" id="confirm_password" required class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="btn-wrapper">
+                            <button type="submit" class="btn btn-dark">Update Password</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Logic (Same as before) -->
+<script>
+    // Preview Image
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Hide placeholder if it exists
+                const placeholder = document.getElementById('avatar-placeholder');
+                if(placeholder) placeholder.classList.add('hidden');
+                
+                // Show image
+                const img = document.getElementById('avatar-preview');
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                
+                // Show save button
+                document.getElementById('save-avatar-btn').classList.remove('hidden');
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Upload Avatar
+    function uploadAvatar() {
+        const fileInput = document.getElementById('profile_image_input');
+        if (!fileInput.files[0]) return;
+
+        const formData = new FormData();
+        formData.append('profile_image', fileInput.files[0]);
+        formData.append('action', 'update_avatar');
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch("{% url 'profiled' %}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Avatar updated successfully!');
+                document.getElementById('save-avatar-btn').classList.add('hidden');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    // Update Profile Info
+    function handleProfileUpdate(e) {
+        e.preventDefault();
+        const data = {
+            username: document.getElementById('username').value,
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value,
+            action: 'update_info'
+        };
+
+        sendJsonRequest(data, 'Profile updated successfully!');
+    }
+
+    // Change Password
+    function handlePasswordChange(e) {
+        e.preventDefault();
+        const oldPass = document.getElementById('old_password').value;
+        const newPass = document.getElementById('new_password').value;
+        const confirmPass = document.getElementById('confirm_password').value;
+
+        if (newPass !== confirmPass) {
+            alert("New passwords do not match.");
+            return;
+        }
+
+        const data = {
+            old_password: oldPass,
+            new_password: newPass,
+            action: 'change_password'
+        };
+
+        sendJsonRequest(data, 'Password changed successfully!');
+    }
+
+    // Helper function for JSON requests
+    function sendJsonRequest(data, successMsg) {
+        fetch("{% url 'profiled' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(successMsg);
+                if(data.action === 'change_password') document.getElementById('password-change-form').reset();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => console.error(err));
+    }
+</script>
+
+{% endblock %}
