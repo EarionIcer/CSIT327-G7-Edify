@@ -63,14 +63,15 @@
         </div>
     </div>
 
-    <!-- PUBLIC FILES SECTION (Formerly Quick Actions) -->
+    <!-- PUBLIC FILES SECTION -->
     <div class="card action-banner">
         <div class="action-content">
             <div class="action-text">
                 <h3>Explore Public Resources</h3>
                 <p>Access shared materials from the global educator community.</p>
             </div>
-            <a href="{% url 'owsearch' %}" class="btn-public">
+            <!-- Updated URL to match your views logic (search page) -->
+            <a href="{% url 'public' %}" class="btn-public">
                 <i class="fa-solid fa-globe"></i> Public Files
             </a>
         </div>
@@ -132,7 +133,7 @@
                             <li class="file-item">
                                 <a href="{{ file.file_path }}" target="_blank" class="file-link-wrapper">
                                     <div class="file-icon-wrapper fav">
-                                        <i class="fa-solid fa-star"></i>
+                                        <i class="fa-solid fa-heart"></i>
                                     </div>
                                     <div class="file-details">
                                         <span class="file-name">{{ file.title }}</span>
@@ -150,7 +151,7 @@
                     <div class="empty-state">
                         <div class="empty-icon"><i class="fa-regular fa-heart"></i></div>
                         <p>No favorites yet.</p>
-                        <span class="text-sm text-gray">Star files to see them here.</span>
+                        <span class="text-sm text-gray">Heart files to see them here.</span>
                     </div>
                 {% endif %}
             </div>

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Public Library - Edify{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/publicCss.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="public-container">
+  
+  <!-- Header Section -->
+  <div class="library-header">
+    <div class="header-content">
+      <h1 class="page-title">Public Library</h1>
+      <p class="page-subtitle">Discover, learn, and share knowledge with the community.</p>
+    </div>
+  </div>
+
+  <!-- Modern Floating Toolbar -->
+  <div class="search-toolbar">
+    <form method="get" action="{% url 'public' %}" class="toolbar-form">
+        
+        <!-- Search Input -->
+        <div class="search-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" name="q" value="{{ query }}" placeholder="Search for resources, subjects, or topics..." autocomplete="off"/>
+        </div>
+
+        <!-- Filter Dropdown -->
+        <div class="filter-wrapper">
+            <div class="select-box">
+                <i class="fa-solid fa-filter filter-icon"></i>
+                <select name="subject" onchange="this.form.submit()">
+                    <option value="All" {% if selected_subject == 'All' %}selected{% endif %}>All Subjects</option>
+                    {% for subj in subjects %}
+                        <option value="{{ subj }}" {% if selected_subject == subj %}selected{% endif %}>{{ subj }}</option>
+                    {% endfor %}
+                </select>
+                <i class="fa-solid fa-chevron-down arrow-icon"></i>
+            </div>
+            <button type="submit" class="btn-search">Search</button>
+        </div>
+
+    </form>
+  </div>
+
+  <!-- Results Grid -->
+  {% if results %}
+    <div class="resource-grid">
+      {% for file in results %}
+      <div class="resource-card">
+        
+        <!-- Card Header (Visual Preview) -->
+        <div class="card-header-visual">
+            <div class="file-type-badge">
+                {% if file.file_type == 'pdf' %}
+                    <i class="fa-solid fa-file-pdf"></i> PDF
+                {% elif file.file_type == 'docx' or file.file_type == 'doc' %}
+                    <i class="fa-solid fa-file-word"></i> DOC
+                {% elif file.file_type == 'pptx' or file.file_type == 'ppt' %}
+                    <i class="fa-solid fa-file-powerpoint"></i> PPT
+                {% elif file.file_type == 'jpg' or file.file_type == 'png' %}
+                    <i class="fa-solid fa-file-image"></i> IMG
+                {% else %}
+                    <i class="fa-solid fa-file-lines"></i> FILE
+                {% endif %}
+            </div>
+            
+            <!-- Like Button (Floating) -->
+            <a href="{% url 'toggle_favorite' file.id %}" class="btn-like {% if file.is_favorite %}active{% endif %}" title="Like this resource">
+                <i class="{% if file.is_favorite %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
+            </a>
+        </div>
+
+        <!-- Card Content -->
+        <div class="card-body">
+            <h3 class="resource-title" title="{{ file.title }}">{{ file.title }}</h3>
+            
+            <div class="badge-container">
+                <span class="pill-badge subject">{{ file.subject }}</span>
+                <span class="pill-badge grade">{{ file.grade }}</span>
+            </div>
+
+            <!-- Publisher & Meta (FIXED) -->
+            <div class="publisher-info">
+                {% if file.author_name == 'You' %}
+                    <div class="avatar-circle me"><i class="fa-solid fa-user"></i></div>
+                    <span class="publisher-name me">You</span>
+                {% else %}
+                    <div class="avatar-circle"><i class="fa-solid fa-user"></i></div>
+                    <span class="publisher-name">{{ file.author_name }}</span>
+                {% endif %}
+                <span class="separator">•</span>
+                <span class="file-size">{{ file.file_size }}</span>
+            </div>
+        </div>
+
+        <!-- Card Actions -->
+        <div class="card-footer">
+            <a href="{% url 'download_file' file.id %}" class="btn-download">
+                Download <i class="fa-solid fa-cloud-arrow-down"></i>
+            </a>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <!-- Empty State -->
+    <div class="empty-container">
+        <div class="empty-illustration">
+            <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <h3>No results found</h3>
+        <p>We couldn't find any resources matching your search.</p>
+        {% if query or selected_subject != 'All' %}
+            <a href="{% url 'public' %}" class="btn-clear">Clear Filters</a>
+        {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -8,6 +8,15 @@
 {% endblock %}
 
 {% block content %}
+<!-- ✅ LOADING OVERLAY (Hidden by default) -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <h3>Uploading Resource</h3>
+        <p>Sending your file to the cloud...<br>This may take a few seconds.</p>
+    </div>
+</div>
+
 <div class="addfiles-container">
   
   <!-- Page Header -->
@@ -16,106 +25,122 @@
       <h1 class="page-title">Upload Material</h1>
       <p class="page-subtitle">Share your knowledge resources with the community or keep them safe.</p>
     </div>
-    <!-- Back button -->
     <a href="{% url 'uploads' %}" class="back-btn">
       <i class="fa-solid fa-arrow-left"></i> Back to Uploads
     </a>
   </div>
 
-  <div class="card form-wrapper">
-    <!-- Left section: Inputs -->
-    <div class="form-section">
-      
-      <div class="input-group">
-        <label for="title">File Title</label>
-        <input type="text" id="title" class="form-input" placeholder="e.g., Introduction to Algebra" />
-      </div>
+  <!-- FORM -->
+  <form id="uploadForm" method="POST" enctype="multipart/form-data" autocomplete="off">
+    {% csrf_token %}
 
-      <div class="input-group">
-        <label for="description">Description</label>
-        <textarea id="description" class="form-input" rows="5" placeholder="Describe the contents of this file..."></textarea>
-      </div>
-
-      <div class="row-group">
-        <div class="input-group">
-          <label for="subject">Subject</label>
-          <div class="input-wrapper">
-            <i class="fa-solid fa-book input-icon"></i>
-            <input type="text" id="subject" class="form-input with-icon" placeholder="Math, Science..." />
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label for="grade">Grade / Year Level</label>
-          <div class="input-wrapper">
-            <i class="fa-solid fa-graduation-cap input-icon"></i>
-            <input type="text" id="grade" class="form-input with-icon" placeholder="Grade 10..." />
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Divider (Vertical on Desktop, Horizontal on Mobile) -->
-    <div class="divider-line"></div>
-
-    <!-- Right section: Upload & Actions -->
-    <div class="upload-section">
-      
-      <label class="section-label">File Attachment</label>
-      <div class="upload-box" id="uploadArea">
-        <div class="upload-content" id="uploadPlaceholder">
-            <div class="icon-circle">
-                <i class="fa-solid fa-cloud-arrow-up"></i>
-            </div>
-            <p class="upload-text">Click to browse or drag file here</p>
-            <span class="upload-hint">Supports PDF, DOCX, PPTX, JPG</span>
-        </div>
+    <div class="card form-wrapper">
+      <!-- Left section: Inputs -->
+      <div class="form-section">
         
-        <!-- File Preview State (Hidden by default) -->
-        <div class="file-preview" id="filePreview" style="display: none;">
-            <i class="fa-solid fa-file-lines file-icon-large"></i>
-            <div class="file-info">
-                <span id="fileName" class="file-name">filename.pdf</span>
-                <span id="fileSize" class="file-size">0 KB</span>
-            </div>
-            <button type="button" id="removeFileBtn" class="remove-btn"><i class="fa-solid fa-times"></i></button>
+        <div class="input-group">
+          <label for="title">File Title</label>
+          <input type="text" id="title" name="title" class="form-input" placeholder="e.g., Introduction to Algebra" required />
         </div>
 
-        <input type="file" id="fileInput" hidden />
+        <div class="input-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" class="form-input" rows="5" placeholder="Describe the contents of this file..."></textarea>
+        </div>
+
+        <div class="row-group">
+          <div class="input-group">
+            <label for="subject">Subject</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-book input-icon"></i>
+              <input type="text" id="subject" name="subject" class="form-input with-icon" placeholder="Math, Science..." required />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="grade">Grade / Year Level</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-graduation-cap input-icon"></i>
+              <input type="text" id="grade" name="grade" class="form-input with-icon" placeholder="Grade 10..." required />
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- VISIBILITY TOGGLE (Requested Feature) -->
-      <div class="visibility-wrapper">
-        <label class="section-label">Visibility Settings</label>
-        <!-- Default is 'private' (Red) -->
-        <button type="button" id="visibilityBtn" class="visibility-btn private">
-            <div class="vis-icon">
-                <i class="fa-solid fa-lock" id="visIcon"></i>
-            </div>
-            <div class="vis-info">
-                <span id="visTitle">Private File</span>
-                <span id="visDesc">Only you can see this file.</span>
-            </div>
-            <div class="vis-status">
-                <i class="fa-solid fa-power-off"></i>
-            </div>
+      <div class="divider-line"></div>
+
+      <!-- Right section: Upload & Actions -->
+      <div class="upload-section">
+        
+        <label class="section-label">File Attachment</label>
+        
+        <!-- Visual Upload Area -->
+        <div class="upload-box" id="uploadArea">
+          <div class="upload-content" id="uploadPlaceholder">
+              <div class="icon-circle">
+                  <i class="fa-solid fa-cloud-arrow-up"></i>
+              </div>
+              <p class="upload-text">Click to browse or drag file here</p>
+              <span class="upload-hint">Supports PDF, DOCX, PPTX, JPG</span>
+          </div>
+          
+          <!-- File Preview -->
+          <div class="file-preview" id="filePreview" style="display: none;">
+              <i class="fa-solid fa-file-lines file-icon-large"></i>
+              <div class="file-info">
+                  <span id="fileName" class="file-name">filename.pdf</span>
+                  <span id="fileSize" class="file-size">0 KB</span>
+              </div>
+              <button type="button" id="removeFileBtn" class="remove-btn"><i class="fa-solid fa-times"></i></button>
+          </div>
+
+          <!-- Actual Input -->
+          <input type="file" id="fileInput" name="file" hidden required />
+        </div>
+
+        <!-- VISIBILITY TOGGLE -->
+        <div class="visibility-wrapper">
+          <label class="section-label">Visibility Settings</label>
+          <button type="button" id="visibilityBtn" class="visibility-btn private">
+              <div class="vis-icon">
+                  <i class="fa-solid fa-lock" id="visIcon"></i>
+              </div>
+              <div class="vis-info">
+                  <span id="visTitle">Private File</span>
+                  <span id="visDesc">Only you can see this file.</span>
+              </div>
+              <div class="vis-status">
+                  <i class="fa-solid fa-power-off"></i>
+              </div>
+          </button>
+          <input type="hidden" id="fileVisibility" name="visibility" value="private">
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <i class="fa-solid fa-upload"></i> Upload Material
         </button>
-        <!-- Hidden input to store value for backend -->
-        <input type="hidden" id="fileVisibility" value="private">
+
       </div>
-
-      <button class="btn-submit" id="uploadBtn">
-        <i class="fa-solid fa-upload"></i> Upload Material
-      </button>
-
     </div>
-  </div>
+  </form>
 </div>
 
 {% block extra_js %}
 <script>
-  // === 1. VISIBILITY TOGGLE LOGIC ===
+  // 1. Show Loader on Submit
+  const form = document.getElementById('uploadForm');
+  const overlay = document.getElementById('loadingOverlay');
+  
+  form.addEventListener('submit', function(e) {
+      // Basic validation check before showing loader
+      if (form.checkValidity()) {
+          // Show the full screen loader
+          overlay.style.display = 'flex';
+      }
+  });
+
+  // 2. Visibility Toggle
   const visBtn = document.getElementById('visibilityBtn');
   const visIcon = document.getElementById('visIcon');
   const visTitle = document.getElementById('visTitle');
@@ -124,7 +149,6 @@
 
   visBtn.addEventListener('click', () => {
     if (visBtn.classList.contains('private')) {
-        // Switch to Public (Green)
         visBtn.classList.remove('private');
         visBtn.classList.add('public');
         visIcon.className = 'fa-solid fa-globe';
@@ -132,7 +156,6 @@
         visDesc.textContent = 'Visible to the Edify community.';
         visInput.value = 'public';
     } else {
-        // Switch to Private (Red)
         visBtn.classList.remove('public');
         visBtn.classList.add('private');
         visIcon.className = 'fa-solid fa-lock';
@@ -142,7 +165,7 @@
     }
   });
 
-  // === 2. FILE UPLOAD UI LOGIC ===
+  // 3. File Drag & Drop Visuals
   const uploadBox = document.getElementById("uploadArea");
   const fileInput = document.getElementById("fileInput");
   const placeholder = document.getElementById("uploadPlaceholder");
@@ -151,19 +174,13 @@
   const fileSizeSpan = document.getElementById("fileSize");
   const removeBtn = document.getElementById("removeFileBtn");
 
-  // Click trigger
   uploadBox.addEventListener("click", (e) => {
-      if (e.target !== removeBtn && !removeBtn.contains(e.target)) {
-        fileInput.click();
-      }
+      if (e.target !== removeBtn && !removeBtn.contains(e.target)) fileInput.click();
   });
 
-  // Drag & Drop Visuals
-  uploadBox.addEventListener("dragover", e => {
-    e.preventDefault();
-    uploadBox.classList.add("dragover");
-  });
+  uploadBox.addEventListener("dragover", e => { e.preventDefault(); uploadBox.classList.add("dragover"); });
   uploadBox.addEventListener("dragleave", () => uploadBox.classList.remove("dragover"));
+  
   uploadBox.addEventListener("drop", e => {
     e.preventDefault();
     uploadBox.classList.remove("dragover");
@@ -173,7 +190,6 @@
     }
   });
 
-  // File Selection
   fileInput.addEventListener("change", updateFileDisplay);
 
   function updateFileDisplay() {
@@ -182,78 +198,18 @@
       const sizeKB = (file.size / 1024).toFixed(1);
       fileNameSpan.textContent = file.name;
       fileSizeSpan.textContent = sizeKB + " KB";
-      
       placeholder.style.display = 'none';
       filePreview.style.display = 'flex';
       uploadBox.classList.add('has-file');
     }
   }
 
-  // Remove File
   removeBtn.addEventListener("click", (e) => {
-      e.stopPropagation(); // Prevent triggering fileInput click
-      fileInput.value = ""; // Clear input
+      e.stopPropagation(); 
+      fileInput.value = ""; 
       placeholder.style.display = 'flex';
       filePreview.style.display = 'none';
       uploadBox.classList.remove('has-file');
-  });
-
-  // === 3. UPLOAD SUBMISSION LOGIC ===
-  document.getElementById("uploadBtn").addEventListener("click", async () => {
-    const file = fileInput.files[0];
-    const title = document.getElementById("title").value.trim();
-    const subject = document.getElementById("subject").value.trim();
-    const grade = document.getElementById("grade").value.trim();
-    const description = document.getElementById("description").value.trim();
-    const visibility = document.getElementById("fileVisibility").value;
-
-    if (!file) return alert("Please select a file first!");
-    if (!title || !subject || !grade) return alert("Please fill out Title, Subject, and Grade.");
-
-    // Visual Feedback
-    const btn = document.getElementById("uploadBtn");
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
-    btn.disabled = true;
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("title", title);
-    formData.append("subject", subject);
-    formData.append("grade", grade);
-    formData.append("description", description);
-    formData.append("visibility", visibility); // Sending the toggle state
-
-    try {
-      const response = await fetch("/upload_file/", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "X-CSRFToken": "{{ csrf_token }}" // Django Template Tag
-        }
-      });
-
-      if (response.status === 401) {
-        alert("Session expired. Please log in again.");
-        window.location.href = "/login/";
-        return;
-      }
-
-      const result = await response.json();
-
-      if (result.status === 'success' || response.ok) {
-         alert("File uploaded successfully!");
-         window.location.href = "{% url 'uploads' %}"; // Redirect
-      } else {
-         alert(result.message || "Upload failed.");
-         btn.innerHTML = originalText;
-         btn.disabled = false;
-      }
-    } catch (err) {
-      alert("Error uploading file: " + err.message);
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-    }
   });
 </script>
 {% endblock %}

@@ -1,0 +1,185 @@
+{% extends "nav.html" %} {% load static %} {% block title %}File Manager | Edify
+Admin{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/adminCss.css' %}" />
+{% endblock %} {% block content %}
+<div class="admin-wrapper">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-text">
+      <h1>File Management</h1>
+      <p>Review pending uploads and manage the library.</p>
+    </div>
+    <!-- ✅ Added Total Files Stat -->
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span class="label">Total Files</span>
+        <span class="value">{{ all_files|length }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 1. PENDING APPROVALS (Priority) -->
+  {% if pending_files %}
+  <section class="dashboard-section">
+    <div class="section-header">
+      <h2><i class="fa-solid fa-bell icon-indigo"></i> Needs Review</h2>
+    </div>
+    <div class="card" style="border-left: 4px solid #4f46e5">
+      <div class="table-responsive">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Uploader</th>
+              <th class="text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for file in pending_files %}
+            <tr>
+              <td>
+                <div class="file-meta">
+                  <a
+                    href="{{ file.file_path }}"
+                    target="_blank"
+                    class="file-title-link"
+                  >
+                    {{ file.title }}
+                  </a>
+                  <span class="file-size"
+                    >{{ file.subject }} • {{ file.file_type }}</span
+                  >
+                </div>
+              </td>
+              <td>User #{{ file.user_id|slice:":6" }}</td>
+              <td>
+                <div class="action-group">
+                  <form method="POST" action="{% url 'approve_file' file.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn-approve">Approve</button>
+                  </form>
+                  <form
+                    method="POST"
+                    action="{% url 'delete_file_admin' file.id %}"
+                    onsubmit="return confirm('Reject?');"
+                  >
+                    {% csrf_token %}
+                    <button class="btn btn-reject">Reject</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- 2. ALL FILES DATABASE -->
+  <section class="dashboard-section">
+    <div class="section-header">
+      <h2><i class="fa-solid fa-database icon-gray"></i> All Resources</h2>
+    </div>
+
+    <div class="card">
+      <!-- Search Bar for Files -->
+      <div class="card-header" style="background: white">
+        <form style="width: 100%; display: flex; gap: 10px">
+          <input
+            type="text"
+            name="q"
+            placeholder="Search by title..."
+            value="{{ query }}"
+            style="
+              padding: 8px 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              width: 300px;
+            "
+          />
+          <button type="submit" class="btn" style="background: #f3f4f6">
+            Search
+          </button>
+        </form>
+      </div>
+
+      <div class="table-responsive">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Visibility</th>
+              <th>Date</th>
+              <th class="text-right">Manage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for file in all_files %}
+            <tr>
+              <td>
+                <a
+                  href="{{ file.file_path }}"
+                  target="_blank"
+                  class="file-title-link"
+                >
+                  {{ file.title }}
+                </a>
+              </td>
+              <td>
+                {% if file.status == 'approved' %}
+                <span class="badge" style="background: #ecfdf5; color: #065f46"
+                  >Approved</span
+                >
+                {% elif file.status == 'pending' %}
+                <span class="badge" style="background: #fff7ed; color: #9a3412"
+                  >Pending</span
+                >
+                {% else %}
+                <span class="badge">{{ file.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if file.visibility == 'public' %}
+                <span style="font-size: 0.8rem; color: #10b981"
+                  ><i class="fa-solid fa-globe"></i> Public</span
+                >
+                {% else %}
+                <span style="font-size: 0.8rem; color: #6b7280"
+                  ><i class="fa-solid fa-lock"></i> Private</span
+                >
+                {% endif %}
+              </td>
+              <td class="text-muted text-sm">
+                {{ file.date_added|slice:":10" }}
+              </td>
+              <td>
+                <div class="action-group">
+                  <!-- Allow deleting even approved files -->
+                  <form
+                    method="POST"
+                    action="{% url 'delete_file_admin' file.id %}"
+                    onsubmit="return confirm('Delete this file permanently?');"
+                  >
+                    {% csrf_token %}
+                    <button class="btn-icon-danger" title="Delete File">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center p-4">No files found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

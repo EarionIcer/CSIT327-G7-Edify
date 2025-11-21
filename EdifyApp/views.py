@@ -26,6 +26,38 @@ from django.utils.timezone import make_aware
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from .models import UploadedFile
+from django.contrib.auth.hashers import make_password
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from datetime import datetime
+import uuid
+from EdifyProject.settings import supabase
+from django.db.models import Q 
+
+
+
+from django.contrib.auth import login as django_login
+from django.contrib.auth.hashers import make_password
+from django.shortcuts import render, redirect
+from django.contrib import messages
+
+import os
+import uuid
+import requests # ✅ Needed for download_file
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth import login, authenticate, get_user_model
+from django.contrib.auth.decorators import user_passes_test
+from django.http import JsonResponse, HttpResponse, Http404
+from django.conf import settings
+from django.utils import timezone
+from django.db.models import Q
+from django.utils.timesince import timesince # ✅ Needed for overview
+from django.utils.timezone import now # ✅ Needed for overview
+from datetime import datetime # ✅ Needed for overview
+from supabase import create_client, Client
+
 
 
 
@@ -62,188 +94,233 @@ from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.contrib.auth.hashers import make_password
 from .models import CustomUser
-
+import re
+import os
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth import login, authenticate, get_user_model
+from django.contrib.auth.decorators import user_passes_test
+from django.conf import settings
+from supabase import create_client, Client
 
 
 
 CustomUser = get_user_model()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY") 
-supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-
+supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 # API for the upload files
 
-def upload_file(request):
-    if not request.session.get("user_id"):
-        return JsonResponse({"error": "You must be logged in to upload."}, status=401)
-    if request.method == "POST":
-        uploaded_file = request.FILES.get("file")
-        title = request.POST.get("title")
-        subject = request.POST.get("subject")
-        grade = request.POST.get("grade")
-        description = request.POST.get("description")
+# --- UPLOADS (My Files) ---
+def uploads(request):
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return redirect("login")
 
-        if not uploaded_file:
-            return JsonResponse({"error": "No file uploaded."}, status=400)
+    str_user_id = str(user_id)
+    query = request.GET.get('q', '').strip()
+    subject_filter = request.GET.get('subject', 'All')
 
+    try:
+        db_query = supabase.table('resources').select('*').eq('user_id', str_user_id).order('date_added', desc=True)
+
+        if query:
+            db_query = db_query.ilike('title', f'%{query}%')
+        
+        if subject_filter != 'All':
+            db_query = db_query.eq('subject', subject_filter)
+
+        response = db_query.execute()
+        resources = response.data if hasattr(response, 'data') else response
+
+        # ✅ NEW: Check which files are favorited by the user
+        favorited_ids = []
         try:
-            # Generate unique file name and path
-            file_name = f"{uuid.uuid4()}_{uploaded_file.name}"
-            file_path = f"user_uploads/{request.user.id}/{file_name}"
-
-            # Get file info
-            _, file_extension = os.path.splitext(uploaded_file.name)
-            file_type = file_extension.lower().lstrip('.')  # ✅ always returns 'pdf', 'txt', 'docx'
-
-            # ✅ Upload file to Supabase Storage
-            upload_res = supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
-                file_path, uploaded_file.read()
-            )
-
-            if isinstance(upload_res, dict) and upload_res.get("error"):
-                return JsonResponse({"error": upload_res["error"]["message"]}, status=500)
-
-            # ✅ Get public file URL
-            public_url = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_path)
-
-            # ✅ Insert file metadata into Supabase table
-            resource_data = {
-                "id": str(uuid.uuid4()),
-                "title": title,
-                "subject": subject,
-                "grade": grade,
-                "description": description,
-                "file_path": public_url,
-                "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
-                "file_type": file_type,
-                "user_id": request.session.get("user_id"),  # ✅ use session user_id from Supabase
-                "date_added": timezone.now().isoformat(),
-            }
-
-            supabase.table("resources").insert(resource_data).execute()
-
-            return JsonResponse({"message": "File uploaded successfully!"})
-
+            fav_res = supabase.table('favorites').select('file_id').eq('user_id', str_user_id).execute()
+            fav_data = fav_res.data if hasattr(fav_res, 'data') else fav_res
+            favorited_ids = [item['file_id'] for item in fav_data]
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            print(f"Fav fetch error: {e}")
 
-    return JsonResponse({"error": "Invalid request method."}, status=405)
+        # Mark files as favorited
+        for file in resources:
+            file['is_favorite'] = file['id'] in favorited_ids
+
+    except Exception as e:
+        print(f"Error fetching uploads: {e}")
+        resources = []
+
+    subjects = sorted(list(set(f['subject'] for f in resources if f.get('subject'))))
+
+    return render(request, 'uploads.html', {
+        'resources': resources,
+        'query': query,
+        'selected_subject': subject_filter,
+        'subjects': subjects
+    })
+
+
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 def edit_file(request, file_id):
-    """
-    Edit resource metadata and optionally replace uploaded file.
-    Automatically deletes old file in Supabase storage if a new file is uploaded.
-    """
-
-    # ✅ Check login
     user_id = request.session.get("user_id")
     if not user_id:
-        messages.error(request, "Please log in first.")
         return redirect("login")
 
-    # ✅ Fetch existing file record
-    try:
-        resp = supabase.table("resources").select("*").eq("id", str(file_id)).execute()
-    except Exception as e:
-        messages.error(request, f"Error fetching file: {e}")
-        return redirect("uploads")
+    # GET
+    if request.method == "GET":
+        try:
+            resp = supabase.table("resources").select("*").eq("id", str(file_id)).single().execute()
+            resource = resp.data if hasattr(resp, 'data') else resp
+            return render(request, "edit_file.html", {"file": resource})
+        except:
+            return redirect("uploads")
 
-    if not resp.data:
-        messages.error(request, "File not found.")
-        return redirect("uploads")
-
-    resource = resp.data[0]
-
-    # ✅ Ensure this file belongs to the logged-in user
-    if str(resource.get("user_id")) != str(user_id):
-        messages.error(request, "You don't have permission to edit this file.")
-        return redirect("uploads")
-
-    # ✅ Handle update
+    # POST
     if request.method == "POST":
-        title = request.POST.get("title", "").strip()
+        title = request.POST.get("title").strip()
         subject = request.POST.get("subject", "").strip()
         grade = request.POST.get("grade", "").strip()
         description = request.POST.get("description", "").strip()
+        visibility = request.POST.get("visibility", "private")
         uploaded_file = request.FILES.get("file")
 
-        # Build update payload
         update_data = {
             "title": title,
             "subject": subject,
             "grade": grade,
             "description": description,
+            "visibility": visibility,
+            "date_change": timezone.now().isoformat() # ✅ Update modification time
         }
 
-        # ✅ Handle file replacement
-        if uploaded_file:
-            try:
-                # 🔹 1. Delete the old file first if it exists
-                old_file_path = resource.get("file_path")
-                if old_file_path:
-                    # Extract path after the bucket name
-                    # e.g. https://xyz.supabase.co/storage/v1/object/public/uploads/userid/file.pdf
-                    old_file_key = old_file_path.split("/uploads/")[-1]  # 'userid/file.pdf'
-                    print("🗑️ Deleting old file:", old_file_key)
+        if visibility == 'public':
+            update_data['status'] = 'pending'
+        else:
+            update_data['status'] = 'approved'
 
-                    try:
-                        supabase.storage.from_(settings.SUPABASE_BUCKET).remove([old_file_key])
-                    except Exception as delete_err:
-                        print("⚠️ Warning: could not delete old file:", delete_err)
-
-                # 🔹 2. Upload the new file
-                file_name = f"{user_id}/{uuid.uuid4()}_{uploaded_file.name}"
-                result = supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
-                    file_name,
-                    uploaded_file.read(),
+        try:
+            if uploaded_file:
+                # (File replacement logic...)
+                file_name = f"{uuid.uuid4()}_{uploaded_file.name.replace(' ', '_')}"
+                supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
+                    file_name, uploaded_file.read(), {"content-type": uploaded_file.content_type}
                 )
-
-                if isinstance(result, dict) and result.get("error"):
-                    raise Exception(result["error"].get("message", result["error"]))
-
-                public = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
-                public_url = public.get("publicUrl") if isinstance(public, dict) else public
-
-                # 🔹 3. Update database record with new file info
+                public_url_res = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
+                public_url = public_url_res if isinstance(public_url_res, str) else public_url_res.get('publicURL', '')
+                
                 update_data.update({
                     "file_path": public_url,
-                    "file_type": os.path.splitext(uploaded_file.name)[1].lower().lstrip("."),
+                    "file_type": os.path.splitext(uploaded_file.name)[1].replace('.', '').lower(),
                     "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
                 })
 
-            except Exception as e:
-                messages.error(request, f"Upload failed: {e}")
-                return redirect("edit_file", file_id=file_id)
-
-        # ✅ Perform DB update
-        try:
-            print("📤 About to update file:", file_id)
-            print("🔧 Data being sent to Supabase:", update_data)
-
-            upd = supabase.table("resources").update(update_data).eq("id", str(file_id)).execute()
-            print("🔍 UPDATE RESULT:", upd)
-
-            if isinstance(upd, dict) and upd.get("error"):
-                raise Exception(upd["error"].get("message", upd["error"]))
+            supabase.table("resources").update(update_data).eq("id", str(file_id)).execute()
+            messages.success(request, "File updated.")
+            return redirect("uploads")
 
         except Exception as e:
-            print("❌ Update failed with exception:", e)
-            messages.error(request, f"Error updating file: {e}")
+            messages.error(request, f"Error: {e}")
             return redirect("edit_file", file_id=file_id)
 
-        messages.success(request, "File updated successfully.")
-        return redirect("uploads")
 
-    # ✅ GET: render form
-    return render(request, "edit_file.html", {"file": resource})
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 def forgot_password_view(request):
-    # Just render the page — actual logic handled by AJAX
-    return render(request, "forgot_password.html")
+    # Default to Step 1 (Email input)
+    step = 1 
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        # ==========================================
+        # STEP 1: CHECK EMAIL
+        # ==========================================
+        if action == "check_email":
+            email = request.POST.get("email", "").strip().lower()
+            
+            if not email:
+                messages.error(request, "⚠️ Please enter your email address.")
+            else:
+                user = CustomUser.objects.filter(email=email).first()
+                if user:
+                    # ✅ Store email in session to prevent tampering in step 2
+                    request.session['reset_email'] = email
+                    messages.success(request, "✅ Email verified! Please create a new password.")
+                    step = 2 # Move to next step
+                else:
+                    messages.error(request, "❌ This email is not registered.")
+
+        # ==========================================
+        # STEP 2: RESET PASSWORD
+        # ==========================================
+        elif action == "reset_password":
+            # Get email from session (Secure)
+            email = request.session.get('reset_email')
+            new_password = request.POST.get("password", "")
+            confirm_password = request.POST.get("confirm_password", "")
+
+            # 1. Security Check
+            if not email:
+                messages.error(request, "⚠️ Session expired. Please start over.")
+                return redirect("forgot_password")
+
+            # 2. Validation
+            if new_password != confirm_password:
+                messages.error(request, "❌ Passwords do not match.")
+                step = 2 # Stay on step 2
+            
+            # 3. Password Complexity Check
+            elif len(new_password) < 8:
+                messages.error(request, "⚠️ Password must be at least 8 characters.")
+                step = 2
+            elif not re.search(r"[A-Z]", new_password):
+                messages.error(request, "⚠️ Password must contain an uppercase letter.")
+                step = 2
+            elif not re.search(r"[0-9]", new_password):
+                messages.error(request, "⚠️ Password must contain a number.")
+            elif not re.search(r"[!@#$%^&*]", new_password):
+                messages.error(request, "⚠️ Password must contain a special character.")
+                step = 2
+            
+            else:
+                # 4. Save to Database
+                user = CustomUser.objects.filter(email=email).first()
+                if user:
+                    user.password = make_password(new_password)
+                    user.save()
+                    
+                    # Clean up session
+                    del request.session['reset_email']
+                    
+                    messages.success(request, "🎉 Password reset successful! You can now login.")
+                    return redirect("login")
+                else:
+                    messages.error(request, "❌ User not found.")
+
+    # Render the page with the current step context
+    return render(request, "forgot_password.html", {"step": step})
+
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 def reset_password_view(request):
@@ -283,6 +360,11 @@ def reset_password_view(request):
 
     return JsonResponse({"status": "error", "message": "Unknown action"}, status=400)
 
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+
 
 
 def toggle_favorite(request, id):
@@ -292,88 +374,109 @@ def toggle_favorite(request, id):
             messages.error(request, "Please log in first.")
             return redirect("login")
 
-        # ✅ Fetch the resource that belongs to this user
-        res = supabase.table("resources").select("is_favorite").eq("id", str(id)).eq("user_id", user_id).single().execute()
+        # Check if already favorited
+        # Need to cast ID to string 
+        str_user_id = str(user_id)
+        str_file_id = str(id)
 
-        if not res.data:
-            messages.error(request, "File not found or unauthorized access.")
-            return redirect("uploads")
+        existing = supabase.table('favorites').select('*').eq('user_id', str_user_id).eq('file_id', str_file_id).execute()
+        data = existing.data if hasattr(existing, 'data') else existing
 
-        current_status = res.data.get("is_favorite", False)
-        new_status = not current_status
-
-        # ✅ Update favorite status
-        supabase.table("resources").update({"is_favorite": new_status}).eq("id", str(id)).execute()
-
-        if new_status:
-            messages.success(request, "File added to favorites ⭐")
+        if data:
+            # Remove
+            supabase.table('favorites').delete().eq('user_id', str_user_id).eq('file_id', str_file_id).execute()
+            messages.info(request, "Removed from favorites.")
         else:
-            messages.info(request, "File removed from favorites.")
+            # Add
+            supabase.table('favorites').insert({'user_id': str_user_id, 'file_id': str_file_id}).execute()
+            messages.success(request, "Added to favorites ⭐")
 
-        return redirect("uploads")
+        # Redirect back to previous page (Public or Uploads or Favorites)
+        return redirect(request.META.get('HTTP_REFERER', 'uploads'))
 
     except Exception as e:
         messages.error(request, f"Error updating favorite: {e}")
         return redirect("uploads")
+    
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------    
 
 
-
-
-
-# EdifyApp/views.py
-from django.contrib.auth.hashers import make_password
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.contrib.auth import get_user_model
-from datetime import datetime
-import uuid
-from EdifyProject.settings import supabase
-
-User = get_user_model()
-
-from django.contrib.auth import login as django_login
-from django.contrib.auth.hashers import make_password
-from django.shortcuts import render, redirect
-from django.contrib import messages
-
+# --- REGISTER VIEW (Updated with Backend Validation) ---
 def register(request):
+    # ✅ Initialize context to keep values if registration fails
+    context = {} 
+
     if request.method == "POST":
+        # ✅ Get data
         first_name = request.POST.get("first_name", "").strip()
         last_name = request.POST.get("last_name", "").strip()
         email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password", "")
         confirm_password = request.POST.get("confirm_password", "")
 
+        # ✅ Save input to context so user doesn't have to re-type everything on error
+        context = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email
+        }
+
         # --- 1️⃣ Basic validation ---
         if not all([first_name, last_name, email, password, confirm_password]):
             messages.error(request, "⚠️ Please fill out all fields.")
-            return render(request, "register.html")
+            return render(request, "register.html", context)
 
         if password != confirm_password:
             messages.error(request, "❌ Passwords do not match.")
-            return render(request, "register.html")
+            return render(request, "register.html", context)
 
-        # --- 2️⃣ Check for duplicate email ---
+        # --- 2️⃣ Backend Password Complexity Check ---
+        if len(password) < 8:
+            messages.error(request, "⚠️ Password must be at least 8 characters.")
+            return render(request, "register.html", context)
+        
+        if not re.search(r"[A-Z]", password):
+            messages.error(request, "⚠️ Password must contain at least one uppercase letter.")
+            return render(request, "register.html", context)
+
+        if not re.search(r"[a-z]", password):
+            messages.error(request, "⚠️ Password must contain at least one lowercase letter.")
+            return render(request, "register.html", context)
+
+        if not re.search(r"[0-9]", password):
+            messages.error(request, "⚠️ Password must contain at least one number.")
+            return render(request, "register.html", context)
+
+        if not re.search(r"[!@#$%^&*]", password):
+            messages.error(request, "⚠️ Password must contain at least one special character (!@#$%^&*).")
+            return render(request, "register.html", context)
+
+        # --- 3️⃣ Check for duplicate email ---
         if CustomUser.objects.filter(email=email).exists():
             messages.error(request, "📧 Email already exists.")
-            return render(request, "register.html")
+            return render(request, "register.html", context)
 
         try:
-            # --- 3️⃣ Create local Django user only ---
+            # --- 4️⃣ Create local Django user ---
             hashed_pw = make_password(password)
+            
+            # ✅ Create the user
             local_user = CustomUser.objects.create(
                 email=email,
-                username=email,
+                username=email, # Using email as username
                 first_name=first_name,
                 last_name=last_name,
                 password=hashed_pw,
             )
 
-            # --- 4️⃣ Log the user in ---
+            # --- 5️⃣ Log the user in ---
             login(request, local_user)
 
-            # ✅ Store Django’s integer ID in session
-            request.session["user_id"] = local_user.id  
+            # ✅ Store Django’s integer ID in session (Cast to string for Supabase compatibility)
+            request.session["user_id"] = str(local_user.id)
             request.session["user_email"] = local_user.email
 
             messages.success(request, f"🎉 Welcome, {first_name}! Your account has been created.")
@@ -382,162 +485,271 @@ def register(request):
         except Exception as e:
             print("❌ Registration error:", e)
             messages.error(request, "🚨 Registration failed. Please try again later.")
-            return render(request, "register.html")
+            return render(request, "register.html", context)
 
-    return render(request, "register.html")
+    return render(request, "register.html", context)
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 
 
 
 
-def owsearch(request):
-    query = request.GET.get("q", "").strip()
-    show_all = "show_all" in request.GET
-    message = ""
+# ... imports ...
 
-    # ✅ Get user_id from session
-    user_id = request.session.get("user_id")
-    if not user_id:
-        messages.error(request, "User not logged in.")
-        return redirect("login")
-
-   
+def public_files(request):
+    query = request.GET.get('q', '').strip()
+    subject_filter = request.GET.get('subject', 'All')
 
     try:
-        # ✅ Fetch all resources for this user
-        response = supabase.table("resources").select("*").eq("user_id", user_id).execute()
-        resources = response.data or []
+        # 1. Base Query
+        db_query = supabase.table('resources')\
+            .select('*')\
+            .eq('visibility', 'public')\
+            .eq('status', 'approved')\
+            .order('date_added', desc=True)
 
-        # ✅ Convert Supabase timestamps to Python datetime
-        for r in resources:
-            date_str = r.get("date_added")
-            if date_str:
-                try:
-                    r["date_added"] = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-                except Exception:
-                    pass  # Leave as-is if invalid format
-
-        # ✅ Apply search or "View All"
         if query:
-            results = [
-                r for r in resources
-                if query.lower() in (
-                    f"{r.get('title', '').lower()} {r.get('subject', '').lower()} "
-                    f"{r.get('grade', '').lower()} {r.get('file_type', '').lower()}"
-                )
-            ]
-            message = f'Showing results for "{query}".' if results else f'No files found for "{query}".'
+            db_query = db_query.or_(f"title.ilike.%{query}%,subject.ilike.%{query}%,grade.ilike.%{query}%")
 
-        elif show_all:
-            results = sorted(resources, key=lambda x: x.get("date_added", ""), reverse=True)
-            message = "Showing all your uploaded files."
+        if subject_filter != 'All':
+            db_query = db_query.eq('subject', subject_filter)
 
-        else:
-            results = []
-            message = ""  # Don't show anything if no search or show_all
+        response = db_query.execute()
+        public_files = response.data if hasattr(response, 'data') else response
+
+        # 2. Get User IDs
+        user_ids = [f['user_id'] for f in public_files if 'user_id' in f]
+        
+        # 3. Map User Names
+        users_map = {}
+        if user_ids:
+            try:
+                django_users = CustomUser.objects.filter(id__in=user_ids)
+                for u in django_users:
+                    users_map[str(u.id)] = f"{u.first_name} {u.last_name}".strip() or u.email
+            except ValueError:
+                pass
+
+        # 4. Check Favorites
+        current_user_id = str(request.session.get('user_id', ''))
+        favorited_ids = []
+        if current_user_id:
+            try:
+                fav_res = supabase.table('favorites').select('file_id').eq('user_id', current_user_id).execute()
+                fav_data = fav_res.data if hasattr(fav_res, 'data') else fav_res
+                favorited_ids = [item['file_id'] for item in fav_data]
+            except:
+                pass
+
+        for file in public_files:
+            file['is_favorite'] = file['id'] in favorited_ids
+            
+            f_uid = str(file.get('user_id'))
+            if f_uid == current_user_id:
+                file['author_name'] = "You"
+            else:
+                file['author_name'] = users_map.get(f_uid, "Unknown User")
 
     except Exception as e:
-        results = []
-        message = f"Error fetching files: {str(e)}"
+        print(f"Search error: {e}")
+        public_files = []
 
-    return render(request, "owsearch.html", {
-        "query": query,
-        "results": results,
-        "message": message,
-        "show_all": show_all,
+    subjects = sorted(list(set(f['subject'] for f in public_files if f.get('subject'))))
+
+    return render(request, 'public.html', {
+        'results': public_files, 
+        'query': query,
+        'selected_subject': subject_filter,
+        'subjects': subjects
     })
 
-def login_view(request):
-    # ✅ If already logged in, redirect
-    if request.user.is_authenticated:
-        return redirect("overview")
 
-    # Load saved email from cookie for auto-fill
-    saved_email = request.COOKIES.get("saved_email", "")
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+
+# --- 2. LOGIN VIEW (Updated for Admin Redirect) ---
+def login_view(request):
+    # If user is already logged in, redirect them
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect('admin_dashboard')
+        return redirect('overview')
 
     if request.method == "POST":
-        email = request.POST.get("emailAd").strip().lower()  # ← using emailAd
+        email = request.POST.get("emailAd") # Make sure this matches your HTML input name
         password = request.POST.get("password")
-        remember_me = request.POST.get("remember_me")  # Checkbox value
-
-        try:
-            user = CustomUser.objects.filter(email=email).first()
-
-            if not user:
-                messages.error(request, "❌ Account not found.")
-                return redirect("login")
-
-            if not check_password(password, user.password):
-                messages.error(request, "⚠️ Incorrect password.")
-                return redirect("login")
-
-            # ✅ Log in the user
+        
+        user = authenticate(request, email=email, password=password)
+        
+        if user is not None:
             login(request, user)
+            request.session['user_id'] = user.id 
 
-            # Remember Me expiration
-            if remember_me:
-                request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days
+            # ✅ CHECK ADMIN STATUS
+            if user.is_superuser:
+                messages.success(request, f"Welcome Admin, {user.first_name}!")
+                return redirect('admin_dashboard')
             else:
-                request.session.set_expiry(0)  # Close browser = logout
-
-            # Create response to set cookie
-            # Redirect based on role
+                messages.success(request, f"Welcome back, {user.first_name}!")
+                return redirect('overview')
+        else:
+            messages.error(request, "Invalid credentials.")
             
-            response = redirect("overview")
+    return render(request, 'login.html')
 
 
-            # Save email in cookie for auto-fill (works after logout)
-            response.set_cookie("saved_email", email, max_age=60 * 60 * 24 * 30)
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+   
 
-            # Store user info in session
-            request.session["user_id"] = user.id
-            request.session["user_email"] = user.email
 
-            messages.success(request, f"👋 Welcome back, {user.first_name or user.email}!")
+# --- 3. ADMIN HELPER ---
+def is_superuser(user):
+    return user.is_authenticated and user.is_superuser
 
-            return response
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
+
+
+# --- 4. ADMIN DASHBOARD VIEW ---
+@user_passes_test(is_superuser, login_url='login')
+def admin_dashboard(request):
+    # (Your existing admin dashboard logic...)
+    # Just ensure you use the updated imports above
+    
+    # Fetch Pending
+    try:
+        pending_res = supabase.table('resources').select('*').eq('status', 'pending').eq('visibility', 'public').execute()
+        pending_files = pending_res.data if hasattr(pending_res, 'data') else pending_res
+    except:
+        pending_files = []
+
+    total_users = CustomUser.objects.count()
+    
+    try:
+        all_res = supabase.table('resources').select('visibility', count='exact').execute()
+        all_data = all_res.data if hasattr(all_res, 'data') else all_res
+        public_count = sum(1 for f in all_data if f.get('visibility') == 'public')
+        private_count = len(all_data) - public_count
+    except:
+        public_count = 0
+        private_count = 0
+
+    users = CustomUser.objects.all().order_by('-date_joined')
+
+    context = {
+        'pending_files': pending_files,
+        'users': users,
+        'total_users': total_users,
+        'public_files': public_count,
+        'private_files': private_count,
+    }
+    return render(request, 'admin_dashboard.html', context)
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+# --- 5. APPROVE FILE ACTION ---
+# ... include approve_file, delete_file_admin, admin_files, admin_users from previous steps ...
+@user_passes_test(is_superuser, login_url='login')
+def approve_file(request, file_id):
+    if request.method == "POST":
+        try:
+            supabase.table('resources').update({'status': 'approved'}).eq('id', file_id).execute()
+            messages.success(request, "✅ File approved.")
         except Exception as e:
-            print("⚠️ Login error:", e)
-            messages.error(request, "An error occurred during login.")
-            return redirect("login")
+            messages.error(request, f"Error: {e}")
+    return redirect('admin_dashboard') # or admin_files
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
-    # Send saved email to template
-    return render(request, "login.html", {"saved_email": saved_email})
+
+
+# --- 6. DELETE FILE ACTION (Admin) ---
+@user_passes_test(is_superuser, login_url='login')
+def delete_file_admin(request, file_id):
+    if request.method == "POST":
+        try:
+            # Delete from DB (Rejection)
+            supabase.table('resources').delete().eq('id', file_id).execute()
+            messages.success(request, "❌ File rejected and deleted.")
+        except Exception as e:
+            messages.error(request, f"Error deleting file: {e}")
+            
+    return redirect('admin_dashboard')
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+# --- 7. DELETE USER ACTION ---
+@user_passes_test(is_superuser, login_url='login')
+def delete_user(request, user_id):
+    if request.method == "POST":
+        user_to_delete = get_object_or_404(CustomUser, id=user_id)
+        
+        # Security: Prevent deleting admins
+        if not user_to_delete.is_superuser:
+            user_to_delete.delete()
+            messages.success(request, "User deleted successfully.")
+        else:
+            messages.error(request, "⚠️ You cannot delete an administrator account.")
+            
+    return redirect('admin_dashboard')
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 
 def download_file(request, file_id):
-    # ✅ Check user session
     user_id = request.session.get("user_id")
     if not user_id:
         return redirect("login")
 
-
     try:
-        # ✅ Get file data by id
         response = supabase.table("resources").select("*").eq("id", str(file_id)).single().execute()
-        file_data = response.data
+        file_data = response.data if hasattr(response, 'data') else response
 
         if not file_data:
             raise Http404("File not found.")
 
-        # ✅ Ensure user owns the file
-        if file_data["user_id"] != user_id:
-            return HttpResponse("Unauthorized access.", status=403)
+        # Optional: Ensure ownership or public access logic here
+        # if file_data["user_id"] != str(user_id) and file_data['visibility'] != 'public':
+        #    return HttpResponse("Unauthorized access.", status=403)
 
-        # ✅ Get the file URL and name
         file_url = file_data["file_path"]
         file_name = file_data["title"] or "downloaded_file"
         file_type = file_data.get("file_type", "bin")
 
-        # ✅ Stream file from Supabase public URL
+        # Stream file from Supabase
         file_response = requests.get(file_url)
         if file_response.status_code != 200:
             return HttpResponse("Error downloading file from Supabase.", status=500)
 
-        # ✅ Prepare response for browser download
         response = HttpResponse(
             file_response.content,
             content_type="application/octet-stream"
@@ -548,6 +760,12 @@ def download_file(request, file_id):
     except Exception as e:
         print("Download error:", str(e))
         raise Http404("Error downloading file.")
+    
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------    
 
 
 def file_detail(request, file_id):
@@ -568,10 +786,15 @@ def file_detail(request, file_id):
 
     if not file_data.data:
         messages.error(request, "File not found.")
-        return redirect("owsearch")
+        return redirect("public")
 
     file = file_data.data[0]
     return render(request, "file_detail.html", {"file": file})
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -582,6 +805,12 @@ def navbar(request):
 
     success_message = request.session.pop("success_message", None)
     return render(request, "navbar.html", {"success": success_message})
+
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 def overview(request):
@@ -642,6 +871,13 @@ def overview(request):
 
     except Exception as e:
         return render(request, "overview.html", {"error": str(e)})
+    
+
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 # for uploading files
@@ -694,64 +930,68 @@ def uploads(request):
 
     except Exception as e:
         return render(request, "uploads.html", {"error": str(e)})
+    
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------    
 
     
 # add files
 def add_files(request):
     if request.method == "POST":
-        title = request.POST.get("title")
-        subject = request.POST.get("subject")
-        grade = request.POST.get("grade")
-        description = request.POST.get("description")
+        title = request.POST.get("title").strip()
+        subject = request.POST.get("subject", "").strip() # Default empty if not in form
+        grade = request.POST.get("grade", "").strip()
+        description = request.POST.get("description", "").strip()
         uploaded_file = request.FILES.get("file")
+        visibility = request.POST.get("visibility", "private")
 
-        if not uploaded_file:
-            messages.error(request, "No file selected.")
+        if not uploaded_file or not title:
+            messages.error(request, "Please provide a title and file.")
             return redirect("addfiles")
 
         try:
-            # ✅ Get user_id from session
             user_id = request.session.get("user_id")
             if not user_id:
-                messages.error(request, "User not logged in.")
                 return redirect("login")
 
-            # ✅ Upload file to Supabase Storage
-            file_name = f"{uuid.uuid4()}_{uploaded_file.name}"
-            upload_res = supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
-                file_name, uploaded_file.read()
+            # Upload to Storage
+            file_name = f"{uuid.uuid4()}_{uploaded_file.name.replace(' ', '_')}"
+            supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
+                file_name, uploaded_file.read(), {"content-type": uploaded_file.content_type}
             )
+            
+            public_url_res = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
+            public_url = public_url_res if isinstance(public_url_res, str) else public_url_res.get('publicURL', '')
 
-            # ✅ Check for upload errors
-            if isinstance(upload_res, dict) and upload_res.get("error"):
-                messages.error(request, f"Upload failed: {upload_res['error']['message']}")
-                return redirect("addfiles")
+            filename, file_extension = os.path.splitext(uploaded_file.name)
+            file_type = file_extension.replace('.', '').lower()
 
-            # ✅ Get public file URL
-            public_url = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
+            status = 'pending' if visibility == 'public' else 'approved'
 
-            # ✅ Detect file type automatically using extension
-            file_ext = os.path.splitext(uploaded_file.name)[1].lower()  # e.g. ".pdf"
-            if file_ext.startswith("."):
-                file_ext = file_ext[1:]  # remove dot → "pdf", "docx", "txt"
-
-            # ✅ Insert clean data to Supabase
             resource_data = {
-                "id": str(uuid.uuid4()),
                 "title": title,
                 "subject": subject,
                 "grade": grade,
                 "description": description,
                 "file_path": public_url,
                 "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
-                "file_type": file_ext,  # ✅ correct readable type
+                "file_type": file_type,
                 "date_added": timezone.now().isoformat(),
-                "user_id": user_id,
+                "user_id": str(user_id), # ✅ Ensure string
+                "visibility": visibility,
+                "status": status,
+                # "is_favorite": False # Optional, if you really want it in the table
             }
 
             supabase.table("resources").insert(resource_data).execute()
 
-            messages.success(request, "File uploaded successfully!")
+            if visibility == 'public':
+                messages.success(request, "✅ Uploaded! Waiting for Admin approval.")
+            else:
+                messages.success(request, "✅ Uploaded to private files.")
+            
             return redirect("uploads")
 
         except Exception as e:
@@ -761,10 +1001,21 @@ def add_files(request):
     return render(request, "addfiles.html")
 
 
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+
+
 
 def view_file(request, pk):
     file = get_object_or_404(UploadedFile, pk=pk)
     return render(request, 'view_file.html', {'file': file})
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -772,42 +1023,29 @@ def delete_file(request, id):
     if request.method == "POST":
         user_id = request.session.get("user_id")
         if not user_id:
-            messages.error(request, "You must log in to delete a file.")
             return redirect("login")
 
         try:
-            # ✅ Get file record from Supabase
             file_res = supabase.table("resources").select("*").eq("id", id).execute()
-            if not file_res.data:
-                messages.error(request, "File not found.")
-                return redirect("overview")
+            file_data = file_res.data[0] if file_res.data else None
 
-            file_data = file_res.data[0]
-
-            # ✅ Make sure the user owns this file
-            if file_data.get("user_id") != user_id:
-                messages.error(request, "You can only delete your own files.")
-                return redirect("overview")
-
-            # ✅ Extract file name from file_path (to delete from storage)
-            file_url = file_data.get("file_path", "")
-            file_name = file_url.split("/")[-1] if "/" in file_url else file_url
-
-            # ✅ Delete from Supabase Storage
-            supabase.storage.from_(settings.SUPABASE_BUCKET).remove([f"user_uploads/{user_id}/{file_name}"])
-
-            # ✅ Delete from Supabase Table
-            supabase.table("resources").delete().eq("id", id).execute()
-
-            messages.success(request, "File deleted successfully!")
-            return redirect("overview")
-
+            if file_data and str(file_data.get("user_id")) == str(user_id):
+                # Note: You might need to parse file path to get storage key if needed
+                # supabase.storage...remove(...) 
+                supabase.table("resources").delete().eq("id", id).execute()
+                messages.success(request, "File deleted successfully!")
+            else:
+                messages.error(request, "Unauthorized.")
+                
         except Exception as e:
-            messages.error(request, f"Error deleting file: {e}")
-            return redirect("overview")
+            messages.error(request, f"Error: {e}")
+            
+    return redirect("uploads")
 
-    messages.error(request, "Invalid request method.")
-    return redirect("overview")
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -818,43 +1056,70 @@ def favorites(request):
             messages.error(request, "Please log in to view favorites.")
             return redirect("login")
 
-        response = (
-            supabase.table("resources")
-            .select("*")
-            .eq("user_id", str(user_id))
-            .eq("is_favorite", True)
-            .order("date_added", desc=True)
-            .execute()
-        )
+        str_user_id = str(user_id)
 
-        favorites = response.data or []
+        # 1. Get IDs of files this user has favorited from the 'favorites' table
+        fav_res = supabase.table('favorites').select('file_id').eq('user_id', str_user_id).execute()
+        fav_data = fav_res.data if hasattr(fav_res, 'data') else fav_res
+        
+        # Extract just the IDs: ['id1', 'id2', ...]
+        fav_ids = [f['file_id'] for f in fav_data]
 
-        # ✅ Convert Supabase string timestamps into formatted time
-        for file in favorites:
-            date_str = file.get("date_added")
+        favorites_list = []
+        
+        # 2. Fetch the actual file details from 'resources' if we have favorites
+        if fav_ids:
+            # Use .in_() to get all files that match the IDs
+            res = supabase.table('resources').select('*').in_('id', fav_ids).order('date_added', desc=True).execute()
+            favorites_list = res.data if hasattr(res, 'data') else res
 
-            if date_str:
-                try:
-                    dt = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f%z")
-                    file["formatted_date"] = dt.strftime("%b %d %Y, %I:%M %p")
-                except:
+            # 3. Your Date Formatting Logic & Flags
+            for file in favorites_list:
+                # Mark as favorite for the UI (Red heart)
+                file['is_favorite'] = True
+                
+                # Your date logic
+                date_str = file.get("date_added")
+                if date_str:
+                    try:
+                        # Handling timezone 'Z' manually if needed, or let fromisoformat handle it
+                        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                        file["formatted_date"] = dt.strftime("%b %d %Y, %I:%M %p")
+                    except:
+                        file["formatted_date"] = "Unknown"
+                else:
                     file["formatted_date"] = "Unknown"
-            else:
-                file["formatted_date"] = "Unknown"
 
-        return render(request, "favorites.html", {"favorites": favorites})
+        return render(request, "favorites.html", {"favorites": favorites_list})
 
     except Exception as e:
+        print(f"Fav Error: {e}")
         messages.error(request, f"Error loading favorites: {e}")
         return redirect("overview")
+    
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------    
 
 
 
 def profiled(request):
     return render(request, 'profiled.html')
 
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+
 def about(request):
     return render(request, 'about.html')
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
 def logout_view(request):
@@ -882,5 +1147,89 @@ def logout_view(request):
     request.session.pop("access_token", None)
 
     messages.success(request, "You have been logged out.")
+    request.session.flush()
 
     return redirect("login")
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+
+
+@user_passes_test(is_superuser, login_url='login')
+def admin_files(request):
+    # (Your admin_files logic from previous steps)
+    try:
+        pending_res = supabase.table('resources').select('*').eq('status', 'pending').eq('visibility', 'public').execute()
+        pending_files = pending_res.data if hasattr(pending_res, 'data') else pending_res
+    except:
+        pending_files = []
+
+    query = request.GET.get('q', '').strip()
+    try:
+        db_query = supabase.table('resources').select('*').order('date_added', desc=True)
+        if query:
+            db_query = db_query.ilike('title', f'%{query}%')
+        all_res = db_query.execute()
+        all_files = all_res.data if hasattr(all_res, 'data') else all_res
+    except:
+        all_files = []
+
+    return render(request, 'admin_files.html', {'pending_files': pending_files, 'all_files': all_files, 'query': query})
+
+
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+
+
+@user_passes_test(is_superuser, login_url='login')
+def admin_users(request):
+    query = request.GET.get('q', '').strip()
+    users = CustomUser.objects.all().order_by('-date_joined')
+    if query:
+        users = users.filter(Q(first_name__icontains=query) | Q(last_name__icontains=query) | Q(email__icontains=query))
+    return render(request, 'admin_users.html', {'users': users, 'query': query})
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+
+
+# --- TOGGLE VISIBILITY ---
+def toggle_visibility(request, file_id):
+    user_id = request.session.get("user_id")
+    if not user_id or request.method != "POST":
+        return redirect("uploads")
+
+    try:
+        current_res = supabase.table('resources').select('visibility').eq('id', file_id).single().execute()
+        current_data = current_res.data if hasattr(current_res, 'data') else current_res
+        
+        new_vis = 'public' if current_data['visibility'] == 'private' else 'private'
+        new_status = 'pending' if new_vis == 'public' else 'approved'
+
+        supabase.table('resources').update({
+            'visibility': new_vis,
+            'status': new_status,
+            'date_change': timezone.now().isoformat() # ✅ Track change
+        }).eq('id', file_id).execute()
+
+        if new_vis == 'public':
+            messages.success(request, "File is now Public (Pending Approval).")
+        else:
+            messages.success(request, "File is now Private.")
+
+    except Exception as e:
+        messages.error(request, f"Error: {e}")
+
+    return redirect('uploads')
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------------------
