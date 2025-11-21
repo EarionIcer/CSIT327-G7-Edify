@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Admin Portal | Edify{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+    />
+
+    <!-- Admin Nav CSS -->
+    <link rel="stylesheet" href="{% static 'css/navCss.css' %}" />
+    {% block extra_css %}{% endblock %}
+  </head>
+
+  <body>
+    <!-- ✅ Global Django Messages -->
+    {% if messages %}
+    <div class="messages-container">
+      {% for message in messages %}
+      <div
+        class="msg {% if message.tags == 'error' %}msg-error{% else %}msg-success{% endif %}"
+      >
+        <i
+          class="fas {% if message.tags == 'error' %}fa-circle-exclamation{% else %}fa-check-circle{% endif %}"
+        ></i>
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="page-wrapper">
+      <!-- Admin Sidebar -->
+      <aside class="sidebar">
+        <!-- Brand -->
+        <div class="sidebar-header">
+          <div class="logo-box">
+            <img src="{% static 'img/Edify-logo.png' %}" alt="Edify Logo" />
+          </div>
+          <div class="brand-text">
+            <h1>Edify</h1>
+            <span class="badge-admin">ADMIN</span>
+          </div>
+        </div>
+
+        <!-- Admin Menu -->
+        <nav class="sidebar-menu">
+          <ul class="menu-list">
+            <!-- Dashboard (Main) -->
+            <li
+              class="menu-item {% if request.path == '/admin-dashboard/' %}active{% endif %}"
+            >
+              <a href="{% url 'admin_dashboard' %}">
+                <i class="fa-solid fa-chart-line icon"></i>
+                <span class="text">Dashboard</span>
+              </a>
+            </li>
+
+            <!-- Management Links -->
+            <li class="menu-label">Management</li>
+
+            <!-- UPDATED: Points to the new File Manager page -->
+            <li
+              class="menu-item {% if request.path == '/admin-files/' %}active{% endif %}"
+            >
+              <a href="{% url 'admin_files' %}">
+                <i class="fa-solid fa-folder-tree icon"></i>
+                <span class="text">File Manager</span>
+                {% if pending_files %}
+                <span class="counter-badge">{{ pending_files|length }}</span>
+                {% endif %}
+              </a>
+            </li>
+
+            <!-- Users Link (UPDATED) -->
+            <li
+              class="menu-item {% if request.path == '/admin-users/' %}active{% endif %}"
+            >
+              <a href="{% url 'admin_users' %}">
+                <i class="fa-solid fa-users-gear icon"></i>
+                <span class="text">Users</span>
+              </a>
+            </li>
+
+            <!-- Navigation -->
+            <li class="menu-label">Navigation</li>
+
+            <li class="menu-item">
+              <a href="{% url 'overview' %}">
+                <i class="fa-solid fa-arrow-up-right-from-square icon"></i>
+                <span class="text">View Live Site</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <!-- Footer (Logout) -->
+        <div class="sidebar-footer">
+          <ul class="menu-list">
+            <li class="menu-item logout">
+              <a href="{% url 'logout' %}">
+                <i class="fa-solid fa-right-from-bracket icon"></i>
+                <span class="text">Sign out</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">{% block content %}{% endblock %}</main>
+    </div>
+
+    <!-- Common JS -->
+    <script>
+      // Auto-hide messages
+      document.addEventListener("DOMContentLoaded", () => {
+        const messages = document.querySelectorAll(".msg");
+        messages.forEach((msg) => {
+          setTimeout(() => {
+            msg.style.opacity = "0";
+            msg.style.transform = "translateY(-10px)";
+            setTimeout(() => msg.remove(), 500);
+          }, 4000);
+        });
+      });
+    </script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

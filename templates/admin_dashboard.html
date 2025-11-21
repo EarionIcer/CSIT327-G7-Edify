@@ -1,0 +1,202 @@
+{% extends "nav.html" %} {% load static %} {% block title %}Admin Dashboard |
+Edify{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/adminCss.css' %}" />
+{% endblock %} {% block content %}
+<div class="admin-wrapper">
+  <!-- Page Header -->
+  <header class="dashboard-header">
+    <div class="header-text">
+      <h1>Dashboard</h1>
+      <p>
+        Welcome back, Admin. You have
+        <strong class="text-highlight">{{ pending_files|length }}</strong> items
+        needing attention.
+      </p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span class="label">Total Files</span>
+        <span class="value">{{ public_files|add:private_files }}</span>
+      </div>
+      <div class="stat-pill">
+        <span class="label">Users</span>
+        <span class="value">{{ total_users }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- SECTION 1: PENDING APPROVALS (Priority) -->
+  <!-- Anchor ID for sidebar jump link -->
+  <section id="approvals" class="dashboard-section">
+    <div class="section-header">
+      <h2>
+        <i class="fa-solid fa-clipboard-check icon-indigo"></i> Pending
+        Approvals
+      </h2>
+      {% if pending_files %}
+      <span class="badge-count">{{ pending_files|length }} New</span>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="table-responsive">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Resource Name</th>
+              <th>Subject & Grade</th>
+              <th>Uploaded By</th>
+              <th>Date</th>
+              <th class="text-right">Decisions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for file in pending_files %}
+            <tr>
+              <td>
+                <div class="file-meta">
+                  <a
+                    href="{{ file.file_path }}"
+                    target="_blank"
+                    class="file-title-link"
+                  >
+                    <i class="fa-solid fa-file-pdf file-icon"></i> {{ file.title
+                    }}
+                  </a>
+                  <span class="file-size"
+                    >{{ file.file_type|upper }} • {{ file.file_size }}</span
+                  >
+                </div>
+              </td>
+              <td>
+                <div class="tags">
+                  <span class="tag">{{ file.subject }}</span>
+                  <span class="tag-outline">{{ file.grade }}</span>
+                </div>
+              </td>
+              <td class="text-muted">
+                <!-- Placeholder for user name since Supabase query might not join users easily -->
+                <div class="user-info">
+                  <i class="fa-solid fa-user-circle"></i> User #{{
+                  file.user_id|slice:":6" }}
+                </div>
+              </td>
+              <td class="text-muted text-sm">
+                {{ file.date_added|slice:":10" }}
+              </td>
+              <td>
+                <div class="action-group">
+                  <!-- Approve -->
+                  <form method="POST" action="{% url 'approve_file' file.id %}">
+                    {% csrf_token %}
+                    <button
+                      type="submit"
+                      class="btn btn-approve"
+                      title="Approve & Publish"
+                    >
+                      <i class="fa-solid fa-check"></i> Approve
+                    </button>
+                  </form>
+
+                  <!-- Reject -->
+                  <form
+                    method="POST"
+                    action="{% url 'delete_file_admin' file.id %}"
+                    onsubmit="return confirm('Are you sure you want to reject and delete this file?');"
+                  >
+                    {% csrf_token %}
+                    <button
+                      type="submit"
+                      class="btn btn-reject"
+                      title="Reject & Delete"
+                    >
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <div class="empty-icon-bg">
+                    <i class="fa-solid fa-check"></i>
+                  </div>
+                  <h3>All caught up!</h3>
+                  <p>There are no pending files to review right now.</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: USER MANAGEMENT -->
+  <section id="users" class="dashboard-section mt-large">
+    <div class="section-header">
+      <h2><i class="fa-solid fa-users-gear icon-gray"></i> User Management</h2>
+    </div>
+
+    <div class="card">
+      <div class="table-responsive">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>User Identity</th>
+              <th>Email Address</th>
+              <th>Role</th>
+              <th>Joined Date</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td>
+                <div class="user-row">
+                  <div class="avatar">{{ u.first_name|slice:":1" }}</div>
+                  <span class="font-medium"
+                    >{{ u.first_name }} {{ u.last_name }}</span
+                  >
+                </div>
+              </td>
+              <td class="text-muted">{{ u.email }}</td>
+              <td>
+                {% if u.is_superuser %}
+                <span class="status-badge admin">Admin</span>
+                {% else %}
+                <span class="status-badge user">Member</span>
+                {% endif %}
+              </td>
+              <td class="text-muted">{{ u.date_joined|date:"M d, Y" }}</td>
+              <td>
+                <div class="action-group">
+                  {% if u.id != request.user.id %}
+                  <form
+                    method="POST"
+                    action="{% url 'delete_user' u.id %}"
+                    onsubmit="return confirm('This action cannot be undone. Delete this user?');"
+                  >
+                    {% csrf_token %}
+                    <button class="btn-icon-danger" title="Delete User">
+                      <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                  </form>
+                  {% else %}
+                  <span class="text-xs text-muted">Current User</span>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

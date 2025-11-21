@@ -238,6 +238,25 @@
     border: 1px solid #d1fae5;
 }
 
+/* ✅ STATUS BADGES */
+.badge.status-approved {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.badge.status-pending {
+    background-color: #fef9c3;
+    color: #854d0e;
+    border: 1px solid #fde047;
+}
+
+.badge.status-rejected {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
 /* --- Action Buttons --- */
 .action-buttons {
     display: flex;
@@ -271,9 +290,9 @@
 .btn-edit:hover { color: var(--warning-color); }
 .btn-delete:hover { color: var(--danger-color); background-color: #fef2f2; }
 
-/* Favorite Button States */
-.btn-fav:hover { color: #f59e0b; }
-.btn-fav.active { color: #f59e0b; }
+/* ✅ FAVORITE BUTTON (Red Logic) */
+.btn-fav:hover { color: #ef4444; } /* Turns red on hover */
+.btn-fav.active { color: #ef4444; } /* Stays red when favorited */
 
 /* --- POWER BUTTON / VISIBILITY TOGGLE --- */
 .btn-visibility {

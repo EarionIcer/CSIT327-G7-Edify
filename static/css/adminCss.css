@@ -1,0 +1,381 @@
+/* --- Base & Layout --- */
+:root {
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --success: #10b981;
+  --danger: #ef4444;
+  --text-main: #111827;
+  --text-sec: #6b7280;
+  --border: #e5e7eb;
+  --bg-card: #ffffff;
+}
+
+.admin-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  animation: fadeUp 0.4s ease-out;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Header --- */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+}
+
+.header-text h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 5px;
+  letter-spacing: -0.5px;
+}
+
+.header-text p {
+  color: var(--text-sec);
+  font-size: 1rem;
+}
+
+.text-highlight {
+  color: var(--primary);
+}
+
+.header-stats {
+  display: flex;
+  gap: 15px;
+}
+
+.stat-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+}
+
+.stat-pill .label {
+  font-size: 0.75rem;
+  color: var(--text-sec);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stat-pill .value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* --- Section Headers --- */
+.dashboard-section {
+  margin-bottom: 40px;
+}
+.mt-large {
+  margin-top: 60px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-indigo {
+  color: var(--primary);
+}
+.icon-gray {
+  color: var(--text-sec);
+}
+
+.badge-count {
+  background-color: var(--danger);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+/* --- Card & Table --- */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.modern-table th {
+  background: #f9fafb;
+  text-align: left;
+  padding: 14px 24px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-sec);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.modern-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.modern-table tr:last-child td {
+  border-bottom: none;
+}
+.modern-table tr:hover {
+  background-color: #fdfdfd;
+}
+
+/* --- Table Content Styles --- */
+.file-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-title-link {
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  margin-bottom: 2px;
+}
+.file-title-link:hover {
+  text-decoration: underline;
+}
+
+.file-size {
+  font-size: 0.75rem;
+  color: var(--text-sec);
+}
+
+.tags {
+  display: flex;
+  gap: 6px;
+}
+.tag {
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.tag-outline {
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--text-sec);
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avatar {
+  width: 32px;
+  height: 32px;
+  background: #e0e7ff;
+  color: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.status-badge.admin {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+.status-badge.user {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* --- Buttons & Actions --- */
+.text-right {
+  text-align: right;
+}
+.action-group {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btn-approve {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #d1fae5;
+}
+.btn-approve:hover {
+  background: #047857;
+  color: white;
+}
+
+.btn-reject {
+  background: white;
+  color: var(--text-sec);
+  border: 1px solid var(--border);
+}
+.btn-reject:hover {
+  background: #fee2e2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+
+.btn-icon-danger {
+  background: none;
+  border: none;
+  color: var(--text-sec);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: color 0.2s;
+}
+.btn-icon-danger:hover {
+  color: var(--danger);
+}
+
+/* --- Empty State --- */
+.empty-state {
+  text-align: center;
+  padding: 40px 0;
+}
+.empty-icon-bg {
+  width: 60px;
+  height: 60px;
+  background: #f0fdf4;
+  color: #22c55e;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 15px;
+}
+.empty-state h3 {
+  margin-bottom: 5px;
+  color: var(--text-main);
+}
+.empty-state p {
+  color: var(--text-sec);
+  font-size: 0.9rem;
+}
+
+/* Utilities */
+.text-muted {
+  color: var(--text-sec);
+}
+.font-medium {
+  font-weight: 500;
+}
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  /* Default Fallback */
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+/* Admin Avatar (Purple) */
+.avatar.is-admin {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+}
+
+/* Member Avatar (Indigo) */
+.avatar.is-member {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+/* Specific styles for this page */
+.status-dot {
+  height: 10px;
+  width: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+.dot-green {
+  background-color: #10b981;
+}
+.dot-orange {
+  background-color: #f59e0b;
+}
+.dot-gray {
+  background-color: #9ca3af;
+}

@@ -1,0 +1,167 @@
+{% extends "nav.html" %} {% load static %} {% block title %}User Management |
+Edify Admin{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/adminCss.css' %}" />
+{% endblock %} {% block content %}
+<div class="admin-wrapper">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-text">
+      <h1>User Management</h1>
+      <p>View, search, and manage registered accounts.</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span class="label">Total Users</span>
+        <span class="value">{{ users|length }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- USERS TABLE SECTION -->
+  <section class="dashboard-section">
+    <div class="card">
+      <!-- Search Toolbar -->
+      <div class="card-header" style="background: white; padding: 20px">
+        <form
+          method="GET"
+          action="{% url 'admin_users' %}"
+          style="width: 100%; display: flex; gap: 10px"
+        >
+          <div
+            class="search-wrapper"
+            style="flex: 1; max-width: 400px; position: relative"
+          >
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #9ca3af;
+              "
+            ></i>
+            <input
+              type="text"
+              name="q"
+              placeholder="Search by name or email..."
+              value="{{ query }}"
+              style="
+                width: 100%;
+                padding: 10px 10px 10px 36px;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                font-size: 0.9rem;
+              "
+            />
+          </div>
+          <button
+            type="submit"
+            class="btn"
+            style="background: #f3f4f6; border: 1px solid #e5e7eb"
+          >
+            Search
+          </button>
+        </form>
+      </div>
+
+      <div class="table-responsive">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Identity</th>
+              <th>Email Address</th>
+              <th>Role</th>
+              <th>Date Joined</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td>
+                <div class="user-row">
+                  <div class="avatar">
+                    {{ u.first_name|slice:":1"|default:"U" }}
+                  </div>
+                  <div class="file-meta">
+                    <span class="font-medium"
+                      >{{ u.first_name }} {{ u.last_name }}</span
+                    >
+                    {% if u.id == request.user.id %}
+                    <span
+                      style="
+                        font-size: 0.7rem;
+                        color: #10b981;
+                        font-weight: 600;
+                      "
+                      >(You)</span
+                    >
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td class="text-muted">{{ u.email }}</td>
+              <td>
+                {% if u.is_superuser %}
+                <span class="status-badge admin"
+                  ><i class="fa-solid fa-shield-halved"></i> Admin</span
+                >
+                {% else %}
+                <span class="status-badge user">Member</span>
+                {% endif %}
+              </td>
+              <td class="text-muted text-sm">
+                {{ u.date_joined|date:"M d, Y" }}
+              </td>
+              <td>
+                <div class="action-group">
+                  <!-- Prevent deleting self -->
+                  {% if u.id != request.user.id %}
+                  <form
+                    method="POST"
+                    action="{% url 'delete_user' u.id %}"
+                    onsubmit="return confirm('Are you sure you want to permanently delete {{ u.first_name }}?');"
+                  >
+                    {% csrf_token %}
+                    <button class="btn-icon-danger" title="Delete Account">
+                      <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                  </form>
+                  {% else %}
+                  <span class="text-xs text-muted"
+                    ><i class="fa-solid fa-lock"></i> Protected</span
+                  >
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <div
+                    class="empty-icon-bg"
+                    style="background: #f3f4f6; color: #9ca3af"
+                  >
+                    <i class="fa-solid fa-user-slash"></i>
+                  </div>
+                  <h3>No users found</h3>
+                  <p>Try adjusting your search query.</p>
+                  <a
+                    href="{% url 'admin_users' %}"
+                    class="btn"
+                    style="margin-top: 10px"
+                    >Clear Search</a
+                  >
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
