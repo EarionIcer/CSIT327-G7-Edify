@@ -5,6 +5,30 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/overviewCss.css' %}">
+<style>
+    /* Small override for the heart button in lists */
+    .btn-icon-fav {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2rem;
+        color: #cbd5e1; /* Gray default */
+        transition: transform 0.2s, color 0.2s;
+        padding: 0;
+        margin-left: auto; /* Push to right if flex */
+    }
+    .btn-icon-fav:hover { color: #ef4444; transform: scale(1.1); }
+    .btn-icon-fav.active { color: #ef4444; }
+    
+    /* Ensure list items are flex containers */
+    .file-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 12px;
+    }
+    .file-details { flex: 1; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -17,15 +41,12 @@
             <h1 class="page-title">Overview</h1>
             <p class="page-subtitle">Welcome back! Here's what's happening with your files.</p>
         </div>
-        <!-- Date/Time display or simple greeting could go here -->
     </div>
 
     <!-- STATS ROW -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon bg-indigo">
-                <i class="fa-solid fa-cloud-arrow-up"></i>
-            </div>
+            <div class="stat-icon bg-indigo"><i class="fa-solid fa-cloud-arrow-up"></i></div>
             <div class="stat-info">
                 <h2>{{ total_uploads|default:"0" }}</h2>
                 <p>Total Uploads</p>
@@ -33,19 +54,15 @@
         </div>
 
         <div class="stat-card">
-            <div class="stat-icon bg-red">
-                <i class="fa-solid fa-heart"></i>
-            </div>
+            <div class="stat-icon bg-red"><i class="fa-solid fa-heart"></i></div>
             <div class="stat-info">
-                <h2>{{ favorites_count|default:"0" }}</h2>
+                <h2 id="favorites-count">{{ favorites_count|default:"0" }}</h2>
                 <p>Favorites</p>
             </div>
         </div>
 
         <div class="stat-card">
-            <div class="stat-icon bg-green">
-                <i class="fa-solid fa-book-open"></i>
-            </div>
+            <div class="stat-icon bg-green"><i class="fa-solid fa-book-open"></i></div>
             <div class="stat-info">
                 <h2>{{ subjects_count|default:"0" }}</h2>
                 <p>Subjects</p>
@@ -53,11 +70,9 @@
         </div>
 
         <div class="stat-card">
-            <div class="stat-icon bg-orange">
-                <i class="fa-solid fa-database"></i>
-            </div>
+            <div class="stat-icon bg-orange"><i class="fa-solid fa-database"></i></div>
             <div class="stat-info">
-                <h2>{{ total_storage|default:"0GB" }}</h2>
+                <h2>{{ total_storage|default:"N/A" }}</h2>
                 <p>Storage Used</p>
             </div>
         </div>
@@ -70,7 +85,6 @@
                 <h3>Explore Public Resources</h3>
                 <p>Access shared materials from the global educator community.</p>
             </div>
-            <!-- Updated URL to match your views logic (search page) -->
             <a href="{% url 'public' %}" class="btn-public">
                 <i class="fa-solid fa-globe"></i> Public Files
             </a>
@@ -80,7 +94,7 @@
     <!-- MAIN CONTENT GRID -->
     <div class="content-grid">
         
-        <!-- Recent Uploads -->
+        <!-- Recent Uploads (Like button removed) -->
         <div class="card recent-files">
             <div class="card-header">
                 <h3><i class="fa-regular fa-clock"></i> Recent Uploads</h3>
@@ -96,16 +110,14 @@
                                     <i class="fa-solid fa-file-lines"></i>
                                 </div>
                                 <div class="file-details">
-                                    <span class="file-name">{{ file.title }}</span>
+                                    <a href="{{ file.file_path }}" target="_blank" class="file-name">{{ file.title }}</a>
                                     <div class="file-meta">
                                         <span>{{ file.subject }}</span>
                                         <span class="dot">•</span>
                                         <span>{{ file.grade }}</span>
-                                        <span class="dot">•</span>
-                                        <span>{{ file.file_size }}</span>
                                     </div>
                                 </div>
-                                <span class="file-time">{{ file.time_ago }}</span>
+                                <!-- Removed Like Button from here -->
                             </li>
                         {% endfor %}
                     </ul>
@@ -113,7 +125,7 @@
                     <div class="empty-state">
                         <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
                         <p>No recent uploads found.</p>
-                        <a href="{% url 'uploads' %}" class="btn-small">Upload Now</a>
+                        <a href="{% url 'addfiles' %}" class="btn-small">Upload Now</a>
                     </div>
                 {% endif %}
             </div>
@@ -131,19 +143,25 @@
                     <ul class="file-list">
                         {% for file in favorites %}
                             <li class="file-item">
-                                <a href="{{ file.file_path }}" target="_blank" class="file-link-wrapper">
-                                    <div class="file-icon-wrapper fav">
-                                        <i class="fa-solid fa-heart"></i>
+                                <div class="file-icon-wrapper fav">
+                                    <i class="fa-solid fa-heart"></i>
+                                </div>
+                                <div class="file-details">
+                                    <a href="{{ file.file_path }}" target="_blank" class="file-name">{{ file.title }}</a>
+                                    <div class="file-meta">
+                                        <span>{{ file.subject|default:"General" }}</span>
+                                        <span class="dot">•</span>
+                                        <span>{{ file.file_size|default:"File" }}</span>
                                     </div>
-                                    <div class="file-details">
-                                        <span class="file-name">{{ file.title }}</span>
-                                        <div class="file-meta">
-                                            <span>{{ file.subject|default:"General" }}</span>
-                                            <span class="dot">•</span>
-                                            <span>{{ file.file_size|default:"N/A" }}</span>
-                                        </div>
-                                    </div>
-                                </a>
+                                </div>
+
+                                <!-- Remove from Favorites Button -->
+                                <button 
+                                    class="btn-icon-fav active"
+                                    onclick="toggleHeart(this, '{{ file.id }}')"
+                                    title="Remove from Favorites">
+                                    <i class="fa-solid fa-heart"></i>
+                                </button>
                             </li>
                         {% endfor %}
                     </ul>
@@ -151,7 +169,7 @@
                     <div class="empty-state">
                         <div class="empty-icon"><i class="fa-regular fa-heart"></i></div>
                         <p>No favorites yet.</p>
-                        <span class="text-sm text-gray">Heart files to see them here.</span>
+                        <span class="text-sm text-gray">Star files to see them here.</span>
                     </div>
                 {% endif %}
             </div>
@@ -161,4 +179,66 @@
 
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function toggleHeart(btn, fileId) {
+        const icon = btn.querySelector('i');
+        const isFav = btn.classList.contains('active');
+        
+        // 1. Optimistic UI Update (Instant feedback)
+        if (isFav) {
+            // User is removing favorite
+            btn.classList.remove('active');
+            icon.classList.remove('fa-solid');
+            icon.classList.add('fa-regular');
+            btn.title = "Add to Favorites";
+        } else {
+            // User is adding favorite
+            btn.classList.add('active');
+            icon.classList.remove('fa-regular');
+            icon.classList.add('fa-solid');
+            btn.title = "Remove from Favorites";
+        }
+
+        // 2. Send Request (POST is required by your view)
+        try {
+            const response = await fetch(`/toggle_favorite/${fileId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}', // Django CSRF protection
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            // 3. Revert if error (UI rollback)
+            const data = await response.json();
+        if (data.status !== 'success') {
+            // revert UI if failed
+            if (isFav) {
+                btn.classList.add('active');
+                icon.classList.add('fa-solid');
+                icon.classList.remove('fa-regular');
+            } else {
+                btn.classList.remove('active');
+                icon.classList.remove('fa-solid');
+                icon.classList.add('fa-regular');
+            }
+            alert("Could not update favorite. Please try again.");
+            return;
+        }
+
+        // Update favorites count badge on the page (if present)
+        if (typeof data.favorites_count !== 'undefined') {
+            // You need an element in the template with e.g. id="favorites-count"
+            const el = document.getElementById('favorites-count');
+            if (el) el.textContent = data.favorites_count;
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Network error. Check your connection.");
+    }
+}
+</script>
 {% endblock %}

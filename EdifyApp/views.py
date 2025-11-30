@@ -132,25 +132,22 @@ def uploads(request):
 
         if query:
             db_query = db_query.ilike('title', f'%{query}%')
-        
         if subject_filter != 'All':
             db_query = db_query.eq('subject', subject_filter)
 
-        response = db_query.execute()
+        response = db_query.limit(50).execute()
         resources = response.data if hasattr(response, 'data') else response
 
-        # ✅ NEW: Check which files are favorited by the user
-        favorited_ids = []
-        try:
-            fav_res = supabase.table('favorites').select('file_id').eq('user_id', str_user_id).execute()
-            fav_data = fav_res.data if hasattr(fav_res, 'data') else fav_res
-            favorited_ids = [item['file_id'] for item in fav_data]
-        except Exception as e:
-            print(f"Fav fetch error: {e}")
+        # ✅ INSERT FAVORITES FIX RIGHT HERE ⬇⬇⬇
+        fav_res = supabase.table("favorites").select("file_id").eq("user_id", str_user_id).execute()
+        fav_data = fav_res.data if hasattr(fav_res, "data") else fav_res
 
-        # Mark files as favorited
+        favorited_ids = set(str(item["file_id"]) for item in fav_data)
+
         for file in resources:
-            file['is_favorite'] = file['id'] in favorited_ids
+            file_id = str(file.get("id"))
+            file["is_favorite"] = file_id in favorited_ids
+        # ✅ END FIX ⬆⬆⬆
 
     except Exception as e:
         print(f"Error fetching uploads: {e}")
@@ -202,7 +199,7 @@ def edit_file(request, file_id):
             "grade": grade,
             "description": description,
             "visibility": visibility,
-            "date_change": timezone.now().isoformat() # ✅ Update modification time
+            "date_changed": timezone.now().isoformat() # ✅ Update modification time
         }
 
         if visibility == 'public':
@@ -368,36 +365,63 @@ def reset_password_view(request):
 
 
 def toggle_favorite(request, id):
+    """
+    Toggles the favorite status of a file.
+    Returns JSON so JavaScript can update the heart icon without reloading.
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error"}, status=400)
+
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return JsonResponse({"status": "unauthenticated"}, status=401)
+
     try:
-        user_id = request.session.get("user_id")
-        if not user_id:
-            messages.error(request, "Please log in first.")
-            return redirect("login")
+        user_id = int(user_id)
+        file_id = str(id)
 
-        # Check if already favorited
-        # Need to cast ID to string 
-        str_user_id = str(user_id)
-        str_file_id = str(id)
+        # Check if favorite exists
+        res = supabase.table("favorites") \
+            .select("id") \
+            .eq("user_id", user_id) \
+            .eq("file_id", file_id) \
+            .execute()
 
-        existing = supabase.table('favorites').select('*').eq('user_id', str_user_id).eq('file_id', str_file_id).execute()
-        data = existing.data if hasattr(existing, 'data') else existing
+        data = res.data or []
 
+        # TOGGLE
         if data:
-            # Remove
-            supabase.table('favorites').delete().eq('user_id', str_user_id).eq('file_id', str_file_id).execute()
-            messages.info(request, "Removed from favorites.")
-        else:
-            # Add
-            supabase.table('favorites').insert({'user_id': str_user_id, 'file_id': str_file_id}).execute()
-            messages.success(request, "Added to favorites ⭐")
+            supabase.table("favorites").delete() \
+                .eq("user_id", user_id) \
+                .eq("file_id", file_id) \
+                .execute()
 
-        # Redirect back to previous page (Public or Uploads or Favorites)
-        return redirect(request.META.get('HTTP_REFERER', 'uploads'))
+            new_state = False
+            message = "Removed from favorites."
+
+        else:
+            supabase.table("favorites").insert({
+                "user_id": user_id,
+                "file_id": file_id
+            }).execute()
+
+            new_state = True
+            message = "Added to favorites ⭐"
+
+        # Send updated count
+        count_res = supabase.table("favorites").select("id").eq("user_id", user_id).execute()
+        fav_count = len(count_res.data or [])
+
+        return JsonResponse({
+            "status": "success",
+            "is_favorite": new_state,
+            "favorites_count": fav_count,
+            "message": message  # ✅ THIS ENABLES TOAST
+        })
 
     except Exception as e:
-        messages.error(request, f"Error updating favorite: {e}")
-        return redirect("uploads")
-    
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
@@ -506,48 +530,38 @@ def public_files(request):
     subject_filter = request.GET.get('subject', 'All')
 
     try:
-        # 1. Base Query
-        db_query = supabase.table('resources')\
-            .select('*')\
-            .eq('visibility', 'public')\
-            .eq('status', 'approved')\
-            .order('date_added', desc=True)
+        db_query = supabase.table('resources').select('*').eq('visibility', 'public').eq('status', 'approved').order('date_added', desc=True)
 
         if query:
             db_query = db_query.or_(f"title.ilike.%{query}%,subject.ilike.%{query}%,grade.ilike.%{query}%")
-
         if subject_filter != 'All':
             db_query = db_query.eq('subject', subject_filter)
 
-        response = db_query.execute()
+        response = db_query.limit(50).execute()
         public_files = response.data if hasattr(response, 'data') else response
 
-        # 2. Get User IDs
+        # User mapping logic...
         user_ids = [f['user_id'] for f in public_files if 'user_id' in f]
-        
-        # 3. Map User Names
         users_map = {}
         if user_ids:
             try:
                 django_users = CustomUser.objects.filter(id__in=user_ids)
                 for u in django_users:
                     users_map[str(u.id)] = f"{u.first_name} {u.last_name}".strip() or u.email
-            except ValueError:
-                pass
+            except ValueError: pass
 
-        # 4. Check Favorites
+        # ✅ FIXED: Favorites Logic
         current_user_id = str(request.session.get('user_id', ''))
-        favorited_ids = []
+        favorited_ids = set()
         if current_user_id:
             try:
                 fav_res = supabase.table('favorites').select('file_id').eq('user_id', current_user_id).execute()
                 fav_data = fav_res.data if hasattr(fav_res, 'data') else fav_res
-                favorited_ids = [item['file_id'] for item in fav_data]
-            except:
-                pass
+                favorited_ids = {str(item['file_id']) for item in fav_data}
+            except: pass
 
         for file in public_files:
-            file['is_favorite'] = file['id'] in favorited_ids
+            file['is_favorite'] = str(file['id']) in favorited_ids
             
             f_uid = str(file.get('user_id'))
             if f_uid == current_user_id:
@@ -563,8 +577,8 @@ def public_files(request):
 
     return render(request, 'public.html', {
         'results': public_files, 
-        'query': query,
-        'selected_subject': subject_filter,
+        'query': query, 
+        'selected_subject': subject_filter, 
         'subjects': subjects
     })
 
@@ -815,49 +829,79 @@ def navbar(request):
 
 def overview(request):
     try:
-        # ✅ Get Supabase user_id from session
+        # Supabase user_id from session
         user_id = request.session.get("user_id")
         if not user_id:
             messages.error(request, "Please log in to view your dashboard.")
             return redirect("login")
 
-        # ✅ Step 1: Fetch all this user’s resources
-        response = supabase.table("resources").select("*").eq("user_id", str(user_id)).execute()
-        resources = response.data or []
+        str_user_id = str(user_id)
 
-        # ✅ Step 2: Compute stats
-        total_uploads = len(resources)
+        # 1) Fetch user's resources
+        resp = supabase.table("resources").select("*").eq("user_id", str_user_id).order("date_added", desc=True).limit(100).execute()
+        resources = resp.data if hasattr(resp, "data") else (resp or [])
 
+        # 2) Fetch this user's favorite file_ids (single query)
+        fav_resp = supabase.table("favorites").select("file_id").eq("user_id", str_user_id).execute()
+        fav_data = fav_resp.data if hasattr(fav_resp, "data") else (fav_resp or [])
+        favorited_ids = {str(item["file_id"]) for item in fav_data}
+
+        # 3) Annotate resources with is_favorite and compute favorites list
+        for r in resources:
+            r_id = str(r.get("id") or r.get("Id") or r.get("file_id") or "")
+            r["is_favorite"] = r_id in favorited_ids
+
+        # favorites list (full resource records for favorites)
         favorites = [r for r in resources if r.get("is_favorite")]
-        favorites_count = len(favorites)
 
-        subjects = {r['subject'] for r in resources if r.get('subject')}
+        # 4) Compute stats
+        total_uploads = len(resources)
+        favorites_count = len(favorited_ids)
+        subjects = {r.get('subject') for r in resources if r.get('subject')}
         subjects_count = len(subjects)
 
-        # ✅ Compute total storage
-        total_kb = sum([
-            float(r.get('file_size', '0').split()[0])
-            for r in resources if r.get('file_size')
-        ])
+        # 5) Compute total storage (safe parse)
+        total_kb = 0.0
+        for r in resources:
+            fs = r.get('file_size')
+            if not fs:
+                continue
+            # Accept "183.91 KB" or "1200" style; try flexible parsing
+            try:
+                # if includes units like "KB" or "MB", split and parse number
+                parts = str(fs).split()
+                num = float(parts[0])
+                unit = parts[1].upper() if len(parts) > 1 else "KB"
+                if unit.startswith("KB"):
+                    total_kb += num
+                elif unit.startswith("MB"):
+                    total_kb += num * 1024
+                elif unit.startswith("B"):
+                    total_kb += num / 1024
+                else:
+                    # fallback assume KB
+                    total_kb += num
+            except Exception:
+                continue
+
         total_storage = f"{total_kb / 1024:.2f} MB" if total_kb > 1024 else f"{total_kb:.2f} KB"
 
-        # ✅ Step 3: Convert date_added → human readable “time ago”
+        # 6) Human readable time_ago
         for r in resources:
             date_str = r.get("date_added")
             if date_str:
                 try:
+                    # Supabase likely returns ISO string e.g. "2025-11-26T20:00:00Z"
                     dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-                    time_diff = timesince(dt, now())
-                    r["time_ago"] = time_diff.split(",")[0] + " ago"
+                    r["time_ago"] = timesince(dt, now()).split(",")[0] + " ago"
                 except Exception:
                     r["time_ago"] = ""
             else:
                 r["time_ago"] = ""
 
-        # ✅ Step 4: Sort by newest and pick top 5
+        # 7) Recent uploads
         recent_uploads = sorted(resources, key=lambda x: x.get('date_added', ''), reverse=True)[:5]
 
-        # ✅ Step 5: Context for template
         context = {
             "total_uploads": total_uploads,
             "favorites_count": favorites_count,
@@ -866,11 +910,12 @@ def overview(request):
             "recent_uploads": recent_uploads,
             "favorites": favorites,
         }
-
         return render(request, "overview.html", context)
 
     except Exception as e:
+        # Helpful debug information in development
         return render(request, "overview.html", {"error": str(e)})
+
     
 
 
@@ -883,33 +928,43 @@ def overview(request):
 # for uploading files
 def uploads(request):
     try:
-        # ✅ Get logged-in user's ID from session
+        # ✅ User session
         user_id = request.session.get("user_id")
-
         if not user_id:
             return redirect("login")
+        str_user_id = str(user_id)
 
-        # ✅ Initialize Supabase client (if not globally defined)
+        # ✅ Connect Supabase
         supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
-        # ✅ Fetch all files uploaded by this user
+        # ✅ Fetch uploads
         response = (
             supabase.table("resources")
             .select("*")
-            .eq("user_id", user_id)
+            .eq("user_id", str_user_id)   # MAKE SURE THIS COLUMN EXISTS
             .execute()
         )
+
         resources = response.data or []
 
-        # ✅ Generate dynamic subject list
-        subjects = sorted(list({r.get("subject", "") for r in resources if r.get("subject")}))
+        # ✅ FETCH FAVORITES FOR HEART STATE
+        fav_res = supabase.table("favorites").select("file_id").eq("user_id", str_user_id).execute()
+        fav_data = fav_res.data or []
+        favorited_ids = {str(item["file_id"]) for item in fav_data}
 
-        # ✅ Handle subject filtering
+        # ✅ APPLY HEART STATE
+        for r in resources:
+            rid = str(r.get("id") or r.get("file_id") or "")
+            r["is_favorite"] = rid in favorited_ids
+
+        # ✅ SUBJECT FILTER
+        subjects = sorted({r.get("subject") for r in resources if r.get("subject")})
         selected_subject = request.GET.get("subject", "All")
+
         if selected_subject != "All":
             resources = [r for r in resources if r.get("subject") == selected_subject]
 
-        # ✅ Handle search functionality (optional)
+        # ✅ SEARCH FILTER
         query = request.GET.get("q", "").strip()
         if query:
             resources = [
@@ -919,6 +974,7 @@ def uploads(request):
                 or query.lower() in r.get("grade", "").lower()
             ]
 
+        # ✅ CONTEXT
         context = {
             "resources": resources,
             "subjects": subjects,
@@ -929,7 +985,10 @@ def uploads(request):
         return render(request, "uploads.html", context)
 
     except Exception as e:
+        print("UPLOAD ERROR:", e)
         return render(request, "uploads.html", {"error": str(e)})
+
+
     
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
@@ -1056,10 +1115,10 @@ def favorites(request):
             messages.error(request, "Please log in to view favorites.")
             return redirect("login")
 
-        str_user_id = str(user_id)
+        user_id = int(user_id)
 
         # 1. Get IDs of files this user has favorited from the 'favorites' table
-        fav_res = supabase.table('favorites').select('file_id').eq('user_id', str_user_id).execute()
+        fav_res = supabase.table('favorites').select('*').eq('user_id', user_id).execute()
         fav_data = fav_res.data if hasattr(fav_res, 'data') else fav_res
         
         # Extract just the IDs: ['id1', 'id2', ...]
@@ -1067,28 +1126,37 @@ def favorites(request):
 
         favorites_list = []
         
-        # 2. Fetch the actual file details from 'resources' if we have favorites
-        if fav_ids:
-            # Use .in_() to get all files that match the IDs
-            res = supabase.table('resources').select('*').in_('id', fav_ids).order('date_added', desc=True).execute()
-            favorites_list = res.data if hasattr(res, 'data') else res
+        # 2. Fetch the favorites with timestamps and join with file details manually
+        if fav_data:
+            # Create a mapping: file_id -> date_favorited
+            fav_map = {f["file_id"]: f.get("created_at") for f in fav_data}
 
-            # 3. Your Date Formatting Logic & Flags
-            for file in favorites_list:
-                # Mark as favorite for the UI (Red heart)
-                file['is_favorite'] = True
-                
-                # Your date logic
-                date_str = file.get("date_added")
-                if date_str:
+            # Fetch the actual files
+            res = supabase.table("resources").select("*").in_("id", list(fav_map.keys())).order("date_added", desc=True).execute()
+            resources = res.data if hasattr(res, "data") else res
+
+            favorites_list = []
+            for file in resources:
+                file_id = file["id"]
+
+                # Attach "date_favorited"
+                file["date_favorited_raw"] = fav_map.get(file_id)
+
+                # Format the date
+                raw = file.get("date_favorited_raw")
+                if raw:
                     try:
-                        # Handling timezone 'Z' manually if needed, or let fromisoformat handle it
-                        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-                        file["formatted_date"] = dt.strftime("%b %d %Y, %I:%M %p")
+                        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                        file["date_favorited"] = dt.strftime("%b %d %Y, %I:%M %p")
                     except:
-                        file["formatted_date"] = "Unknown"
+                        file["date_favorited"] = "Unknown"
                 else:
-                    file["formatted_date"] = "Unknown"
+                    file["date_favorited"] = "Unknown"
+
+                # Flag for UI
+                file["is_favorite"] = True
+
+                favorites_list.append(file)
 
         return render(request, "favorites.html", {"favorites": favorites_list})
 
@@ -1216,7 +1284,7 @@ def toggle_visibility(request, file_id):
         supabase.table('resources').update({
             'visibility': new_vis,
             'status': new_status,
-            'date_change': timezone.now().isoformat() # ✅ Track change
+            'date_changed': timezone.now().isoformat() # ✅ Track change
         }).eq('id', file_id).execute()
 
         if new_vis == 'public':

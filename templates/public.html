@@ -18,17 +18,15 @@
     </div>
   </div>
 
-  <!-- Modern Floating Toolbar -->
+  <!-- Search Toolbar -->
   <div class="search-toolbar">
     <form method="get" action="{% url 'public' %}" class="toolbar-form">
         
-        <!-- Search Input -->
         <div class="search-wrapper">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" name="q" value="{{ query }}" placeholder="Search for resources, subjects, or topics..." autocomplete="off"/>
+            <input type="text" name="q" value="{{ query }}" placeholder="Search for resources..." autocomplete="off"/>
         </div>
 
-        <!-- Filter Dropdown -->
         <div class="filter-wrapper">
             <div class="select-box">
                 <i class="fa-solid fa-filter filter-icon"></i>
@@ -52,26 +50,21 @@
       {% for file in results %}
       <div class="resource-card">
         
-        <!-- Card Header (Visual Preview) -->
+        <!-- Card Header -->
         <div class="card-header-visual">
             <div class="file-type-badge">
-                {% if file.file_type == 'pdf' %}
-                    <i class="fa-solid fa-file-pdf"></i> PDF
-                {% elif file.file_type == 'docx' or file.file_type == 'doc' %}
-                    <i class="fa-solid fa-file-word"></i> DOC
-                {% elif file.file_type == 'pptx' or file.file_type == 'ppt' %}
-                    <i class="fa-solid fa-file-powerpoint"></i> PPT
-                {% elif file.file_type == 'jpg' or file.file_type == 'png' %}
-                    <i class="fa-solid fa-file-image"></i> IMG
-                {% else %}
-                    <i class="fa-solid fa-file-lines"></i> FILE
-                {% endif %}
+                <i class="fa-solid fa-file-lines"></i> {{ file.file_type|upper }}
             </div>
             
-            <!-- Like Button (Floating) -->
-            <a href="{% url 'toggle_favorite' file.id %}" class="btn-like {% if file.is_favorite %}active{% endif %}" title="Like this resource">
+            <!-- ✅ NEW: JS-Powered Like Button -->
+            <button 
+                type="button"
+                class="btn-like {% if file.is_favorite %}active{% endif %}" 
+                onclick="toggleHeart(this, '{{ file.id }}')"
+                title="Like this resource"
+            >
                 <i class="{% if file.is_favorite %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
-            </a>
+            </button>
         </div>
 
         <!-- Card Content -->
@@ -83,15 +76,14 @@
                 <span class="pill-badge grade">{{ file.grade }}</span>
             </div>
 
-            <!-- Publisher & Meta (FIXED) -->
+            <!-- Publisher Info -->
             <div class="publisher-info">
-                {% if file.author_name == 'You' %}
-                    <div class="avatar-circle me"><i class="fa-solid fa-user"></i></div>
-                    <span class="publisher-name me">You</span>
-                {% else %}
-                    <div class="avatar-circle"><i class="fa-solid fa-user"></i></div>
-                    <span class="publisher-name">{{ file.author_name }}</span>
-                {% endif %}
+                <div class="avatar-circle {% if file.author_name == 'You' %}me{% endif %}">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <span class="publisher-name {% if file.author_name == 'You' %}me{% endif %}">
+                    {{ file.author_name }}
+                </span>
                 <span class="separator">•</span>
                 <span class="file-size">{{ file.file_size }}</span>
             </div>
@@ -123,4 +115,37 @@
   {% endif %}
 
 </div>
+
+{% block extra_js %}
+<script>
+    // ✅ AJAX Toggle Heart Logic
+    async function toggleHeart(btn, fileId) {
+        const icon = btn.querySelector('i');
+        const isFav = btn.classList.contains('active');
+        
+        // 1. Optimistic UI Update
+        if (isFav) {
+            btn.classList.remove('active');
+            icon.classList.remove('fa-solid');
+            icon.classList.add('fa-regular');
+        } else {
+            btn.classList.add('active');
+            icon.classList.remove('fa-regular');
+            icon.classList.add('fa-solid');
+        }
+
+        // 2. Send to Backend
+        try {
+            const response = await fetch(`/toggle_favorite/${fileId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            });
+            // If error, you can revert the UI change here
+        } catch (err) { console.error(err); }
+    }
+</script>
+{% endblock %}
 {% endblock %}

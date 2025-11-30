@@ -77,8 +77,8 @@ Edify{% endblock %} {% block extra_css %}
               <td class="text-muted">
                 <!-- Placeholder for user name since Supabase query might not join users easily -->
                 <div class="user-info">
-                  <i class="fa-solid fa-user-circle"></i> User #{{
-                  file.user_id|slice:":6" }}
+                  <i class="fa-solid fa-user-circle"></i> {{ file.user_email }}
+
                 </div>
               </td>
               <td class="text-muted text-sm">
