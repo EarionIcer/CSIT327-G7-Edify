@@ -228,3 +228,30 @@ body {
     border-left: 4px solid var(--success-text);
     color: var(--success-text);
 }
+
+.toast {
+  position: fixed;
+  top: 25px;
+  right: 25px;
+  background: #d1fae5;
+  color: #065f46;
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(0,0,0,.2);
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(-15px);
+  transition: all .25s ease;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toast.error {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+.toast.hidden {
+  display: none;
+}

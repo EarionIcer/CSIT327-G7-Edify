@@ -35,6 +35,8 @@
   </div>
   {% endif %}
 
+  <div id="toast" class="toast hidden"></div>
+
   <div class="page-wrapper">
     
     <!-- Sidebar -->
@@ -118,6 +120,31 @@
   <script src="{% static 'js/overview.js' %}"></script>
   {% block extra_js %}{% endblock %}
 
+  <script>
+      function showToast(message, icon = "check") {
+          const toast = document.getElementById("toast");
+
+          const iconHTML = icon === "star"
+              ? "⭐"
+              : `<i class="fa-solid fa-circle-check"></i>`;
+
+          toast.innerHTML = `
+              <div class="toast-content">
+                  <div class="toast-icon">${iconHTML}</div>
+                  <div class="toast-message">${message}</div>
+              </div>
+          `;
+
+          toast.className = "toast show";
+
+          setTimeout(() => {
+              toast.className = "toast hidden";
+          }, 2800);
+      }
+  </script>
+
+
+
   <!-- Auto-hide messages script -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -132,5 +159,18 @@
       });
     });
   </script>
+
+  <script>
+    function showToast(message, isError=false) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = "toast show" + (isError ? " error" : "");
+
+        setTimeout(() => {
+            toast.className = "toast hidden";
+        }, 2500);
+    }
+  </script>
+
 </body>
 </html>

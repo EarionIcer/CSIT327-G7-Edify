@@ -104,12 +104,13 @@
                 </form>
 
                 <!-- 2. ✅ FAVORITE BUTTON (Added) -->
-                <a href="{% url 'toggle_favorite' file.id %}" 
-                   class="icon-btn btn-fav {% if file.is_favorite %}active{% endif %}" 
-                   title="{% if file.is_favorite %}Remove from Favorites{% else %}Add to Favorites{% endif %}">
-                    <!-- Logic: If favorite -> Solid Heart, Else -> Hollow Heart -->
+                <button 
+                    type="button"
+                    class="icon-btn btn-fav {% if file.is_favorite %}active{% endif %}" 
+                    onclick="toggleHeart(this, '{{ file.id }}')"
+                    title="{% if file.is_favorite %}Remove from Favorites{% else %}Add to Favorites{% endif %}">
                     <i class="{% if file.is_favorite %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
-                </a>
+                </button>
 
                 <!-- 3. Download -->
                 <a href="{% url 'download_file' file.id %}" title="Download" class="icon-btn btn-download">
@@ -148,13 +149,42 @@
   </div>
 </div>
 
+
 <script>
-    function confirmVisibility(currentVisibility) {
-        if (currentVisibility === 'private') {
-            return confirm("Are you sure you want to make this PUBLIC?\n\nIt will be sent to the Admin for approval before appearing in the library.");
-        } else {
-            return confirm("Are you sure you want to make this PRIVATE?\n\nIt will be removed from the public library immediately.");
+async function toggleHeart(button, fileId) {
+    const icon = button.querySelector("i");
+
+    const res = await fetch(`/toggle_favorite/${fileId}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}"
         }
+    });
+
+    const data = await res.json();
+
+    if (data.status !== "success") {
+        showToast("Failed to update favorite");
+        return;
     }
+
+    // ✅ Toggle heart icon
+    if (data.is_favorite) {
+        button.classList.add("active");
+        icon.classList.remove("fa-regular");
+        icon.classList.add("fa-solid");
+        showToast("Added to favorites");
+    } else {
+        button.classList.remove("active");
+        icon.classList.remove("fa-solid");
+        icon.classList.add("fa-regular");
+        showToast("Removed from favorites");
+    }
+
+    // ✅ Update favorites count if exists
+    const countEl = document.getElementById("favorites-count");
+    if (countEl) countEl.textContent = data.favorites_count;
+}
 </script>
+
 {% endblock %}

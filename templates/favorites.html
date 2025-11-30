@@ -60,9 +60,15 @@
            <!-- You can switch icons based on file type if you have logic, defaulting to file -->
            <i class="fa-solid fa-file-lines"></i>
         </div>
-       <a href="{% url 'toggle_favorite' file.id %}" class="btn-icon-remove" title="Remove from favorites">
+       {% comment %} <a href="{% url 'toggle_favorite' file.id %}" class="btn-icon-remove" title="Remove from favorites">
            <i class="fa-solid fa-heart-circle-minus"></i>
-       </a>
+       </a> {% endcomment %}
+       <button type="button"
+          class="btn-icon-remove"
+          onclick="toggleFavorite(this, '{{ file.id }}')"
+          title="Remove from favorites">
+          <i class="fa-solid fa-heart-circle-minus"></i>
+      </button>
       </div>
 
       <!-- Card Body -->
@@ -85,9 +91,11 @@
                 <span class="value">{{ file.file_type|upper }}</span>
             </div>
             <div class="detail-row">
-                <span class="label">Added:</span>
-                <span class="value">{{ file.date_added|date:"M d, Y" }}</span>
-            </div>
+            <span class="label">Added to Favorites:</span>
+            <span class="value">
+              <span class="date-favorited" data-iso="{{ file.date_favorited_raw }}">{{ file.date_favorited }}</span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -159,4 +167,83 @@
     });
   }
 </script>
+
+<script>
+function getCSRF() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || "{{ csrf_token }}";
+}
+
+async function toggleFavorite(button, fileId) {
+    const card = button.closest(".favorite-card");
+
+    try {
+        const res = await fetch(`/toggle_favorite/${fileId}/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCSRF(),
+                "Content-Type": "application/json"
+            }
+        });
+
+        const data = await res.json();
+
+        if (data.status !== "success") {
+            showToast("Failed to update favorite.", true);
+            return;
+        }
+
+        // ✅ Remove instantly from page
+        if (!data.is_favorite) {
+            card.remove();
+        }
+
+        // ✅ Update favorites count
+        const count = document.querySelector(".fav-count");
+        if (count) {
+            count.innerHTML = `<i class="fa-solid fa-heart text-red"></i> ${data.favorites_count} Items Saved`;
+        }
+
+        // ✅ Toast popup
+        showToast(data.is_favorite ? "Added to favorites ⭐" : "Removed from favorites.");
+
+    } catch (err) {
+        console.error(err);
+        showToast("Network error.", true);
+    }
+}
+</script>
+
+
+<script>
+// Format all .date-favorited elements to the user's local time
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll('.date-favorited').forEach(el => {
+    const iso = el.dataset.iso;
+    if (!iso) return;
+
+    try {
+      // Use the browser to parse & format in local timezone
+      const d = new Date(iso);
+      if (isNaN(d)) {
+        // Fallback: keep server-rendered text
+        return;
+      }
+
+      // Options — adjust to match the style you want
+      const opts = {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit'
+      };
+
+      // Example: "Nov 30, 2025, 6:21 PM"
+      el.textContent = d.toLocaleString(undefined, opts);
+    } catch (e) {
+      // keep fallback text if anything fails
+      console.error('Date format error', e);
+    }
+  });
+});
+</script>
+
+
 {% endblock %}
