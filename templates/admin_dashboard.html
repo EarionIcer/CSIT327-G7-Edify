@@ -1,7 +1,13 @@
-{% extends "nav.html" %} {% load static %} {% block title %}Admin Dashboard |
-Edify{% endblock %} {% block extra_css %}
+{% extends "nav.html" %} 
+{% load static %} 
+
+{% block title %}Admin Dashboard | Edify{% endblock %} 
+
+{% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/adminCss.css' %}" />
-{% endblock %} {% block content %}
+{% endblock %} 
+
+{% block content %}
 <div class="admin-wrapper">
   <!-- Page Header -->
   <header class="dashboard-header">
@@ -25,8 +31,7 @@ Edify{% endblock %} {% block extra_css %}
     </div>
   </header>
 
-  <!-- SECTION 1: PENDING APPROVALS (Priority) -->
-  <!-- Anchor ID for sidebar jump link -->
+  <!-- SECTION 1: PENDING APPROVALS -->
   <section id="approvals" class="dashboard-section">
     <div class="section-header">
       <h2>
@@ -55,13 +60,13 @@ Edify{% endblock %} {% block extra_css %}
             <tr>
               <td>
                 <div class="file-meta">
+                  <!-- ✅ Shows the User-Defined Title -->
                   <a
                     href="{{ file.file_path }}"
                     target="_blank"
                     class="file-title-link"
                   >
-                    <i class="fa-solid fa-file-pdf file-icon"></i> {{ file.title
-                    }}
+                    <i class="fa-solid fa-file-lines file-icon"></i> {{ file.title }}
                   </a>
                   <span class="file-size"
                     >{{ file.file_type|upper }} • {{ file.file_size }}</span
@@ -75,10 +80,12 @@ Edify{% endblock %} {% block extra_css %}
                 </div>
               </td>
               <td class="text-muted">
-                <!-- Placeholder for user name since Supabase query might not join users easily -->
-                <div class="user-info">
-                  <i class="fa-solid fa-user-circle"></i> {{ file.user_email }}
-
+                <div class="user-info" style="display: flex; align-items: center; gap: 8px;">
+                  <div class="avatar-circle" style="width: 24px; height: 24px; font-size: 0.7rem; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                     <i class="fa-solid fa-user"></i>
+                  </div>
+                  <!-- ✅ Shows the Actual Name -->
+                  <span style="font-weight: 500; color: #1f2937;">{{ file.uploader_name }}</span>
                 </div>
               </td>
               <td class="text-muted text-sm">

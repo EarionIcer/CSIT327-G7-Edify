@@ -1,160 +1,136 @@
+# ==========================================
+# 1. STANDARD LIBRARY IMPORTS
+# ==========================================
+import os                       # Operating system interfaces (file paths, env vars)
+import re                       # Regular expressions (used for password validation)
+import uuid                     # Generate unique IDs (UUIDs) for files
+import logging                  # System logging
+from datetime import datetime   # Date and time manipulation
+from sqlite3 import IntegrityError # Handle database integrity errors
 
-# views.py 
+# ==========================================
+# 2. THIRD-PARTY LIBRARIES
+# ==========================================
+import requests                 # Send HTTP requests (used for file downloading)
+from supabase import create_client, Client  # Interface for Supabase database
 
-# from email.utils import localtime
-from .models import CustomUser
-from datetime import datetime
-import os
-import logging
-from sqlite3 import IntegrityError
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
-from supabase import create_client, Client
-from django.conf import settings   
-from .models import Resource
-from .forms import UploadForm 
-from django.utils.timezone import localtime
-from django.shortcuts import redirect, get_object_or_404
-from django.contrib import messages
-from .supabase_client import supabase
-from django.http import JsonResponse
-import uuid
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from django.contrib.auth.hashers import check_password
-from django.utils.timezone import make_aware
-from django.contrib.auth.decorators import login_required
-from django.conf import settings
-from .models import UploadedFile
-from django.contrib.auth.hashers import make_password
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.contrib.auth import get_user_model
-from datetime import datetime
-import uuid
-from EdifyProject.settings import supabase
-from django.db.models import Q 
+# ==========================================
+# 3. DJANGO CORE IMPORTS
+# ==========================================
+from django.conf import settings                # Access project settings (API keys, etc.)
+from django.shortcuts import render, redirect, get_object_or_404 # View rendering & redirection
+from django.http import JsonResponse, HttpResponse, Http404      # HTTP response types
+from django.contrib import messages             # Flash messages (success/error alerts)
+from django.db.models import Q                  # Complex database queries (OR lookups)
+from django.db import ProgrammingError          # Handle database errors
+from django.core.mail import send_mail          # Send emails
+from django.utils import timezone               # Timezone utilities
+from django.utils.timezone import now, localtime, make_aware # Time helpers
+from django.utils.timesince import timesince    # Relative time formatting ("5 mins ago")
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode # Encoding for tokens
+from django.utils.encoding import force_bytes, force_str # String encoding helpers
+from django.contrib.humanize.templatetags.humanize import naturaltime # Human-readable time tags
 
+# ==========================================
+# 4. DJANGO AUTHENTICATION & SECURITY
+# ==========================================
+from django.contrib.auth import login, logout, authenticate, get_user_model # Auth functions
+from django.contrib.auth.decorators import login_required, user_passes_test # View protection decorators
+from django.contrib.auth.hashers import make_password, check_password       # Password security
+from django.contrib.auth.tokens import default_token_generator              # Generate secure tokens
+from django.views.decorators.csrf import csrf_exempt   # Exempt views from CSRF checks (use sparingly)
+from django.views.decorators.cache import never_cache  # Prevent browser caching (security)
 
+# ==========================================
+# 5. LOCAL APP IMPORTS
+# ==========================================
+from .models import CustomUser, Resource, UploadedFile  # Your database models
+from .forms import UploadForm   # Django forms
 
-from django.contrib.auth import login as django_login
-from django.contrib.auth.hashers import make_password
-from django.shortcuts import render, redirect
-from django.contrib import messages
-
-import os
-import uuid
-import requests # ✅ Needed for download_file
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.contrib.auth import login, authenticate, get_user_model
-from django.contrib.auth.decorators import user_passes_test
-from django.http import JsonResponse, HttpResponse, Http404
-from django.conf import settings
-from django.utils import timezone
-from django.db.models import Q
-from django.utils.timesince import timesince # ✅ Needed for overview
-from django.utils.timezone import now # ✅ Needed for overview
-from datetime import datetime # ✅ Needed for overview
-from supabase import create_client, Client
-
-
-
-
-from django.db import ProgrammingError
-from django.db.models import Q
-from django.contrib import messages
-from django.contrib.auth import login
-from django.contrib.humanize.templatetags.humanize import naturaltime
-from django.utils.timezone import now
-from django.utils.timesince import timesince
-# from django.contrib.auth.models import User
-from django.contrib import messages
-from datetime import datetime
-from django.utils import timezone
-import uuid
-from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
-from django.http import JsonResponse
-from .supabase_client import supabase
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-import requests
-from django.http import HttpResponse, Http404
-from django.contrib.auth import authenticate, login, logout
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.conf import settings
-from django.contrib.auth.hashers import check_password
-from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.core.mail import send_mail
-from django.http import JsonResponse
-from django.contrib.auth.hashers import make_password
-from .models import CustomUser
-import re
-import os
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.contrib.auth import login, authenticate, get_user_model
-from django.contrib.auth.decorators import user_passes_test
-from django.conf import settings
-from supabase import create_client, Client
-
-
-
+# ==========================================
+# 6. INITIALIZATION
+# ==========================================
+# Get the active User model
 CustomUser = get_user_model()
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY") 
+
+# Initialize Supabase Client
+# Uses credentials from your settings.py
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+
+
+
+
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
-# API for the upload files
 
 # --- UPLOADS (My Files) ---
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def uploads(request):
+    """
+    View to display the current user's uploaded files.
+    Handles authentication, searching, filtering by subject, and favorite status.
+    """
+    # 1. Security Check: Verify the user is logged in via session
     user_id = request.session.get("user_id")
     if not user_id:
         return redirect("login")
 
     str_user_id = str(user_id)
+    
+    # 2. Retrieve Search & Filter Parameters from the URL (GET request)
     query = request.GET.get('q', '').strip()
     subject_filter = request.GET.get('subject', 'All')
 
     try:
+        # 3. Build the Database Query
+        # Select all resources belonging to this user, ordered by newest first
         db_query = supabase.table('resources').select('*').eq('user_id', str_user_id).order('date_added', desc=True)
 
+        # 4. Apply Search Logic (if user typed a search term)
+        # 'ilike' performs a case-insensitive search on the title
         if query:
             db_query = db_query.ilike('title', f'%{query}%')
+        
+        # 5. Apply Subject Filter (if user selected a subject)
         if subject_filter != 'All':
             db_query = db_query.eq('subject', subject_filter)
 
+        # 6. Execute Query
+        # Limit results to 50 to prevent browser lag when rendering many items
         response = db_query.limit(50).execute()
         resources = response.data if hasattr(response, 'data') else response
 
+        # 7. Handle Favorites Status
         # ✅ INSERT FAVORITES FIX RIGHT HERE ⬇⬇⬇
+        # Fetch list of ALL file IDs that this user has favorited
         fav_res = supabase.table("favorites").select("file_id").eq("user_id", str_user_id).execute()
         fav_data = fav_res.data if hasattr(fav_res, "data") else fav_res
 
+        # Convert to a Set for faster lookup (O(1) complexity)
         favorited_ids = set(str(item["file_id"]) for item in fav_data)
 
+        # Iterate through the fetched resources and mark them as favorited if they exist in the set
         for file in resources:
             file_id = str(file.get("id"))
             file["is_favorite"] = file_id in favorited_ids
         # ✅ END FIX ⬆⬆⬆
 
     except Exception as e:
+        # Log errors to console for debugging, return empty list to prevent crash
         print(f"Error fetching uploads: {e}")
         resources = []
 
+    # 8. Extract Unique Subjects for the Filter Dropdown
+    # Uses a set comprehension to get unique values, then sorts them alphabetically
     subjects = sorted(list(set(f['subject'] for f in resources if f.get('subject'))))
 
+    # 9. Render the Template
+    # Pass the processed data (resources, filters, subjects) to the HTML
     return render(request, 'uploads.html', {
         'resources': resources,
         'query': query,
@@ -170,64 +146,90 @@ def uploads(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
+# --- EDIT FILE (Protected) ---
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def edit_file(request, file_id):
+    """
+    View to handle editing of an existing resource.
+    Supports fetching current data (GET) and updating metadata/file (POST).
+    """
+    # 1. Security Check: Ensure user is logged in
     user_id = request.session.get("user_id")
     if not user_id:
         return redirect("login")
 
-    # GET
+    # GET: Render the edit form pre-filled with current file data
     if request.method == "GET":
         try:
+            # Fetch specific file by ID from Supabase
             resp = supabase.table("resources").select("*").eq("id", str(file_id)).single().execute()
             resource = resp.data if hasattr(resp, 'data') else resp
+            # Render template with file context
             return render(request, "edit_file.html", {"file": resource})
         except:
+            # Redirect if file not found or error occurs
             return redirect("uploads")
 
-    # POST
+    # POST: Handle form submission to update the file
     if request.method == "POST":
+        # 2. Retrieve form data
         title = request.POST.get("title").strip()
         subject = request.POST.get("subject", "").strip()
         grade = request.POST.get("grade", "").strip()
         description = request.POST.get("description", "").strip()
         visibility = request.POST.get("visibility", "private")
-        uploaded_file = request.FILES.get("file")
+        uploaded_file = request.FILES.get("file") # Optional new file
 
+        # 3. Prepare update payload for Supabase
         update_data = {
             "title": title,
             "subject": subject,
             "grade": grade,
             "description": description,
             "visibility": visibility,
-            "date_changed": timezone.now().isoformat() # ✅ Update modification time
+            "date_changed": timezone.now().isoformat() # ✅ Update modification time timestamp
         }
 
+        # 4. Apply Business Logic for Status
+        # If user makes file Public -> It requires Admin approval (Pending)
+        # If user makes file Private -> It is auto-approved (Safe)
         if visibility == 'public':
             update_data['status'] = 'pending'
         else:
             update_data['status'] = 'approved'
 
         try:
+            # 5. Handle File Replacement (If a new file is uploaded)
             if uploaded_file:
-                # (File replacement logic...)
+                # Generate unique filename to prevent overwrites
                 file_name = f"{uuid.uuid4()}_{uploaded_file.name.replace(' ', '_')}"
+                
+                # Upload new file to Supabase Storage
                 supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
                     file_name, uploaded_file.read(), {"content-type": uploaded_file.content_type}
                 )
+                
+                # Get public URL for the new file
                 public_url_res = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
                 public_url = public_url_res if isinstance(public_url_res, str) else public_url_res.get('publicURL', '')
                 
+                # Update file-specific metadata in the payload
                 update_data.update({
                     "file_path": public_url,
                     "file_type": os.path.splitext(uploaded_file.name)[1].replace('.', '').lower(),
                     "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
                 })
 
+            # 6. Execute Update in Database
             supabase.table("resources").update(update_data).eq("id", str(file_id)).execute()
+            
+            # Success feedback
             messages.success(request, "File updated.")
             return redirect("uploads")
 
         except Exception as e:
+            # Error handling
             messages.error(request, f"Error: {e}")
             return redirect("edit_file", file_id=file_id)
 
@@ -237,7 +239,8 @@ def edit_file(request, file_id):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def forgot_password_view(request):
     # Default to Step 1 (Email input)
     step = 1 
@@ -319,7 +322,8 @@ def forgot_password_view(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def reset_password_view(request):
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
@@ -363,7 +367,8 @@ def reset_password_view(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def toggle_favorite(request, id):
     """
     Toggles the favorite status of a file.
@@ -427,7 +432,8 @@ def toggle_favorite(request, id):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------    
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 # --- REGISTER VIEW (Updated with Backend Validation) ---
 def register(request):
     # ✅ Initialize context to keep values if registration fails
@@ -519,28 +525,36 @@ def register(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
-
-
-
-
-# ... imports ...
-
+# --- PUBLIC FILES (Paginated) ---
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def public_files(request):
     query = request.GET.get('q', '').strip()
     subject_filter = request.GET.get('subject', 'All')
 
+    # ✅ 1. Pagination Setup
+    page = int(request.GET.get('page', 1))
+    per_page = 12  # 12 cards looks good in a grid layout
+    
+    start = (page - 1) * per_page
+    end = start + per_page - 1
+
     try:
-        db_query = supabase.table('resources').select('*').eq('visibility', 'public').eq('status', 'approved').order('date_added', desc=True)
+        # Base Query (Count exact for pagination buttons)
+        db_query = supabase.table('resources').select('*', count='exact').eq('visibility', 'public').eq('status', 'approved').order('date_added', desc=True)
 
         if query:
             db_query = db_query.or_(f"title.ilike.%{query}%,subject.ilike.%{query}%,grade.ilike.%{query}%")
+
         if subject_filter != 'All':
             db_query = db_query.eq('subject', subject_filter)
 
-        response = db_query.limit(50).execute()
+        # ✅ 2. Fetch Range (Only 12 items)
+        response = db_query.range(start, end).execute()
         public_files = response.data if hasattr(response, 'data') else response
+        total_count = response.count if hasattr(response, 'count') else len(public_files)
 
-        # User mapping logic...
+        # 3. Map Users (Only for these 12 items)
         user_ids = [f['user_id'] for f in public_files if 'user_id' in f]
         users_map = {}
         if user_ids:
@@ -548,20 +562,24 @@ def public_files(request):
                 django_users = CustomUser.objects.filter(id__in=user_ids)
                 for u in django_users:
                     users_map[str(u.id)] = f"{u.first_name} {u.last_name}".strip() or u.email
-            except ValueError: pass
+            except ValueError:
+                pass
 
-        # ✅ FIXED: Favorites Logic
+        # 4. Check Favorites (Only for these 12 items)
         current_user_id = str(request.session.get('user_id', ''))
-        favorited_ids = set()
-        if current_user_id:
+        favorited_ids = []
+        if current_user_id and public_files:
             try:
-                fav_res = supabase.table('favorites').select('file_id').eq('user_id', current_user_id).execute()
+                # Optimized: Filter favs by specific file IDs on this page
+                page_file_ids = [p['id'] for p in public_files]
+                fav_res = supabase.table('favorites').select('file_id').eq('user_id', current_user_id).in_('file_id', page_file_ids).execute()
                 fav_data = fav_res.data if hasattr(fav_res, 'data') else fav_res
-                favorited_ids = {str(item['file_id']) for item in fav_data}
-            except: pass
+                favorited_ids = [item['file_id'] for item in fav_data]
+            except:
+                pass
 
         for file in public_files:
-            file['is_favorite'] = str(file['id']) in favorited_ids
+            file['is_favorite'] = file['id'] in favorited_ids
             
             f_uid = str(file.get('user_id'))
             if f_uid == current_user_id:
@@ -572,14 +590,32 @@ def public_files(request):
     except Exception as e:
         print(f"Search error: {e}")
         public_files = []
+        total_count = 0
 
-    subjects = sorted(list(set(f['subject'] for f in public_files if f.get('subject'))))
+    # ✅ 5. Fetch Subjects (Separate lightweight query to populate filter)
+    # We can't rely on 'public_files' list because it only has 12 items.
+    try:
+        subj_res = supabase.table('resources').select('subject').eq('visibility', 'public').eq('status', 'approved').execute()
+        subj_data = subj_res.data if hasattr(subj_res, 'data') else subj_res
+        subjects = sorted(list(set(f['subject'] for f in subj_data if f.get('subject'))))
+    except:
+        subjects = []
+
+    # ✅ 6. Pagination Flags
+    has_next = total_count > end + 1
+    has_prev = page > 1
 
     return render(request, 'public.html', {
         'results': public_files, 
-        'query': query, 
-        'selected_subject': subject_filter, 
-        'subjects': subjects
+        'query': query,
+        'selected_subject': subject_filter,
+        'subjects': subjects,
+        'page': page,
+        'has_next': has_next,
+        'has_prev': has_prev,
+        'next_page': page + 1,
+        'prev_page': page - 1,
+        'total_count': total_count
     })
 
 
@@ -589,6 +625,8 @@ def public_files(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 # --- 2. LOGIN VIEW (Updated for Admin Redirect) ---
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def login_view(request):
     # If user is already logged in, redirect them
     if request.user.is_authenticated:
@@ -640,20 +678,38 @@ def is_superuser(user):
 # --- 4. ADMIN DASHBOARD VIEW ---
 @user_passes_test(is_superuser, login_url='login')
 def admin_dashboard(request):
-    # (Your existing admin dashboard logic...)
-    # Just ensure you use the updated imports above
-    
-    # Fetch Pending
+    # 1. Fetch Pending Files
     try:
-        pending_res = supabase.table('resources').select('*').eq('status', 'pending').eq('visibility', 'public').execute()
+        pending_res = supabase.table('resources').select('*').eq('status', 'pending').eq('visibility', 'public').limit(10).execute()
         pending_files = pending_res.data if hasattr(pending_res, 'data') else pending_res
     except:
         pending_files = []
 
+    # ✅ NEW: Attach User Names to Pending Files
+    user_ids = [f['user_id'] for f in pending_files if 'user_id' in f]
+    users_map = {}
+    
+    if user_ids:
+        try:
+            # Fetch user details from Django DB
+            django_users = CustomUser.objects.filter(id__in=user_ids)
+            for u in django_users:
+                full_name = f"{u.first_name} {u.last_name}".strip()
+                users_map[str(u.id)] = full_name if full_name else u.email
+        except ValueError:
+            pass # Handle cases where IDs might not match types
+
+    # Attach the name to each file object
+    for file in pending_files:
+        uid = str(file.get('user_id'))
+        file['uploader_name'] = users_map.get(uid, "Unknown User")
+
+
+    # 2. Fetch Stats (Keep existing logic)
     total_users = CustomUser.objects.count()
     
     try:
-        all_res = supabase.table('resources').select('visibility', count='exact').execute()
+        all_res = supabase.table('resources').select('visibility').limit(1000).execute()
         all_data = all_res.data if hasattr(all_res, 'data') else all_res
         public_count = sum(1 for f in all_data if f.get('visibility') == 'public')
         private_count = len(all_data) - public_count
@@ -661,7 +717,7 @@ def admin_dashboard(request):
         public_count = 0
         private_count = 0
 
-    users = CustomUser.objects.all().order_by('-date_joined')
+    users = CustomUser.objects.all().order_by('-date_joined')[:10]
 
     context = {
         'pending_files': pending_files,
@@ -738,7 +794,8 @@ def delete_user(request, user_id):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def download_file(request, file_id):
     user_id = request.session.get("user_id")
     if not user_id:
@@ -781,7 +838,8 @@ def download_file(request, file_id):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------    
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def file_detail(request, file_id):
     # Get Supabase user ID from session
     user_id = request.session.get("user_id")
@@ -811,7 +869,8 @@ def file_detail(request, file_id):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def navbar(request):
     user = request.session.get("user")
     if not user:
@@ -826,7 +885,8 @@ def navbar(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def overview(request):
     try:
         # Supabase user_id from session
@@ -926,6 +986,8 @@ def overview(request):
 
 
 # for uploading files
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def uploads(request):
     try:
         # ✅ User session
@@ -995,68 +1057,111 @@ def uploads(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------    
 
-    
-# add files
+ # --- ADD FILES (Protected) ---
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def add_files(request):
+    """
+    View to handle the uploading of new resources.
+    
+    HOW IT WORKS:
+    1. Checks for POST request (Form submission).
+    2. Validates that essential data (File, Title) exists.
+    3. Uploads the physical file to Supabase Storage.
+    4. Generates a public URL for the file.
+    5. Saves the file metadata (Title, Grade, URL, etc.) to the Supabase Database.
+    6. Sets the status automatically based on visibility (Public -> Pending).
+    """
+    
+    # Check if the request is a form submission
     if request.method == "POST":
+        # 1. Retrieve data from the HTML form
         title = request.POST.get("title").strip()
-        subject = request.POST.get("subject", "").strip() # Default empty if not in form
+        # 'subject' is optional, default to empty string if missing
+        subject = request.POST.get("subject", "").strip() 
         grade = request.POST.get("grade", "").strip()
         description = request.POST.get("description", "").strip()
+        
+        # 'request.FILES' holds the actual file data uploaded by the user
         uploaded_file = request.FILES.get("file")
+        # Default to 'private' if the visibility toggle wasn't set
         visibility = request.POST.get("visibility", "private")
 
+        # 2. Basic Validation: Ensure Title and File are present
         if not uploaded_file or not title:
             messages.error(request, "Please provide a title and file.")
             return redirect("addfiles")
 
         try:
+            # 3. Authentication Check: Get the user ID from the session
             user_id = request.session.get("user_id")
             if not user_id:
+                # If session expired or invalid, force login
                 return redirect("login")
 
-            # Upload to Storage
+            # 4. File Naming Strategy
+            # We use UUID to create a unique filename to prevent overwriting existing files with the same name.
+            # e.g., "math.pdf" -> "550e8400-e29b..._math.pdf"
             file_name = f"{uuid.uuid4()}_{uploaded_file.name.replace(' ', '_')}"
+            
+            # 5. Upload to Cloud Storage (Supabase)
+            # We read the file chunks directly from memory and send them to the 'uploads' bucket.
             supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
                 file_name, uploaded_file.read(), {"content-type": uploaded_file.content_type}
             )
             
+            # 6. Generate Access Link
+            # We retrieve the public URL so users can download/view the file later.
             public_url_res = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_name)
+            # Handle different return formats of the Supabase library (string vs dict)
             public_url = public_url_res if isinstance(public_url_res, str) else public_url_res.get('publicURL', '')
 
+            # 7. Extract File Metadata
+            # Get the file extension (e.g., .pdf, .docx) for display purposes
             filename, file_extension = os.path.splitext(uploaded_file.name)
             file_type = file_extension.replace('.', '').lower()
 
+            # 8. Apply Business Logic for Approval
+            # If the user wants it Public, it must be 'pending' approval by an Admin.
+            # If Private, it is automatically 'approved' for their own use.
             status = 'pending' if visibility == 'public' else 'approved'
 
+            # 9. Prepare Database Payload
             resource_data = {
                 "title": title,
                 "subject": subject,
                 "grade": grade,
                 "description": description,
                 "file_path": public_url,
-                "file_size": f"{round(uploaded_file.size / 1024, 2)} KB",
+                "file_size": f"{round(uploaded_file.size / 1024, 2)} KB", # Convert bytes to KB
                 "file_type": file_type,
                 "date_added": timezone.now().isoformat(),
-                "user_id": str(user_id), # ✅ Ensure string
+                "user_id": str(user_id), # ✅ Ensure ID is stored as a string to match database schema
                 "visibility": visibility,
                 "status": status,
                 # "is_favorite": False # Optional, if you really want it in the table
             }
 
+            # 10. Execute Database Insert
+            # Adds the metadata row to the 'resources' table
             supabase.table("resources").insert(resource_data).execute()
 
+            # 11. User Feedback
             if visibility == 'public':
                 messages.success(request, "✅ Uploaded! Waiting for Admin approval.")
             else:
                 messages.success(request, "✅ Uploaded to private files.")
             
+            # Redirect to the list of uploads on success
             return redirect("uploads")
 
         except Exception as e:
+            # 12. Error Handling
+            # If Storage or Database fails, log the error and notify the user
             messages.error(request, f"Upload error: {e}")
             return redirect("addfiles")
 
+    # If GET request, simply render the upload form
     return render(request, "addfiles.html")
 
 
@@ -1066,7 +1171,8 @@ def add_files(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def view_file(request, pk):
     file = get_object_or_404(UploadedFile, pk=pk)
     return render(request, 'view_file.html', {'file': file})
@@ -1077,7 +1183,8 @@ def view_file(request, pk):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def delete_file(request, id):
     if request.method == "POST":
         user_id = request.session.get("user_id")
@@ -1107,7 +1214,8 @@ def delete_file(request, id):
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def favorites(request):
     try:
         user_id = request.session.get("user_id")
@@ -1172,15 +1280,106 @@ def favorites(request):
 #----------------------------------------------------------------------------------------------------------------------------------------    
 
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@login_required
+@never_cache
 def profiled(request):
-    return render(request, 'profiled.html')
+    user = request.user # Current logged in user
+
+    if request.method == "POST":
+        action = request.POST.get('action')
+
+        # --- 1. UPDATE INFO (Name, Bio, Username) ---
+        if action == 'update_info':
+            user.first_name = request.POST.get('first_name', user.first_name).strip()
+            user.last_name = request.POST.get('last_name', user.last_name).strip()
+            user.username = request.POST.get('username', user.username).strip()
+            # ✅ NEW: Save Bio
+            user.bio = request.POST.get('bio', '').strip()
+            
+            try:
+                user.save()
+                messages.success(request, "✅ Profile updated successfully.")
+            except Exception as e:
+                messages.error(request, "Error saving profile. Username might be taken.")
+            
+            return redirect('profiled')
+
+        # --- 2. UPDATE AVATAR (Upload to Supabase) ---
+        elif action == 'update_avatar':
+            image_file = request.FILES.get('profile_image')
+            
+            if image_file:
+                try:
+                    # 1. Generate unique path: avatars/user_id/timestamp.jpg
+                    file_ext = image_file.name.split('.')[-1]
+                    file_path = f"avatars/{user.id}/{uuid.uuid4()}.{file_ext}"
+
+                    # 2. Upload to Supabase
+                    supabase.storage.from_(settings.SUPABASE_BUCKET).upload(
+                        file_path,
+                        image_file.read(),
+                        {"content-type": image_file.content_type}
+                    )
+
+                    # 3. Get Public URL
+                    public_url_res = supabase.storage.from_(settings.SUPABASE_BUCKET).get_public_url(file_path)
+                    # Handle Supabase-py version differences
+                    public_url = public_url_res if isinstance(public_url_res, str) else public_url_res.get('publicURL')
+
+                    # 4. Save URL to Database
+                    user.profile_picture = public_url
+                    user.save()
+                    
+                    messages.success(request, "📸 Profile picture updated!")
+                except Exception as e:
+                    print(f"Avatar Upload Error: {e}")
+                    messages.error(request, "Failed to upload image. Please try again.")
+            
+            return redirect('profiled')
+
+        # --- 3. CHANGE PASSWORD ---
+        elif action == 'change_password':
+            old_pass = request.POST.get('old_password')
+            new_pass = request.POST.get('new_password')
+            confirm_pass = request.POST.get('confirm_password')
+
+            # 1. Check Old Password
+            if not user.check_password(old_pass):
+                messages.error(request, "❌ Incorrect current password.")
+            
+            # 2. Check Confirmation
+            elif new_pass != confirm_pass:
+                messages.error(request, "❌ New passwords do not match.")
+            
+            # ✅ 3. Check Complexity (New Rules)
+            elif len(new_pass) < 6:
+                messages.error(request, "⚠️ Password must be at least 6 characters.")
+            elif not re.search(r"[A-Z]", new_pass):
+                messages.error(request, "⚠️ Password must contain an uppercase letter.")
+            elif not re.search(r"[a-z]", new_pass):
+                messages.error(request, "⚠️ Password must contain a lowercase letter.")
+            elif not re.search(r"[0-9]", new_pass):
+                messages.error(request, "⚠️ Password must contain a number.")
+            elif not re.search(r"[!@#$%^&*]", new_pass):
+                messages.error(request, "⚠️ Password must contain a special character.")
+            
+            else:
+                user.set_password(new_pass)
+                user.save()
+                login(request, user) # Keep logged in
+                messages.success(request, "🔒 Password changed successfully.")
+            
+            return redirect('profiled')
+
+    return render(request, 'profiled.html', {'user': user})
 
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def about(request):
     return render(request, 'about.html')
 
@@ -1189,7 +1388,8 @@ def about(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def logout_view(request):
     """
     Custom logout that supports 'Remember Me':
@@ -1224,7 +1424,8 @@ def logout_view(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 @user_passes_test(is_superuser, login_url='login')
 def admin_files(request):
     # (Your admin_files logic from previous steps)
@@ -1253,7 +1454,8 @@ def admin_files(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 
-
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 @user_passes_test(is_superuser, login_url='login')
 def admin_users(request):
     query = request.GET.get('q', '').strip()
@@ -1267,36 +1469,64 @@ def admin_users(request):
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 
-
 # --- TOGGLE VISIBILITY ---
+# ✅ Prevent caching so user can't back-button to login if already logged in
+@never_cache
 def toggle_visibility(request, file_id):
+    """
+    View to toggle the visibility status of a file between 'public' and 'private'.
+    
+    HOW IT WORKS:
+    1. Authentication & Validation: Checks if user is logged in and request is POST.
+    2. Fetch Current State: Queries Supabase for the file's current visibility.
+    3. Determine New State:
+       - Toggles visibility (private <-> public).
+       - Sets status based on new visibility (Public -> Pending, Private -> Approved).
+    4. Update Database: Saves the new visibility, status, and modification timestamp.
+    5. User Feedback: Displays a success message indicating the new state.
+    """
+    
+    # 1. Security Check: Ensure user is logged in and method is POST (Action)
     user_id = request.session.get("user_id")
     if not user_id or request.method != "POST":
+        # Redirect if unauthorized or wrong method (prevent CSRF/GET abuse)
         return redirect("uploads")
 
     try:
+        # 2. Get Current State
+        # Fetch the current 'visibility' of the specific file ID
         current_res = supabase.table('resources').select('visibility').eq('id', file_id).single().execute()
         current_data = current_res.data if hasattr(current_res, 'data') else current_res
         
+        # 3. Toggle Logic
+        # Swap values: If currently 'private', make it 'public', otherwise 'private'
         new_vis = 'public' if current_data['visibility'] == 'private' else 'private'
+        
+        # 4. Status Logic
+        # If switching to Public -> Must go to 'pending' for Admin approval
+        # If switching to Private -> Auto-set to 'approved' (safe for owner)
         new_status = 'pending' if new_vis == 'public' else 'approved'
 
+        # 5. Execute Update
+        # Update the record in Supabase with new visibility, status, and timestamp
         supabase.table('resources').update({
             'visibility': new_vis,
             'status': new_status,
-            'date_changed': timezone.now().isoformat() # ✅ Track change
+            'date_changed': timezone.now().isoformat() # ✅ Track when the change happened
         }).eq('id', file_id).execute()
 
+        # 6. Feedback Message
         if new_vis == 'public':
             messages.success(request, "File is now Public (Pending Approval).")
         else:
             messages.success(request, "File is now Private.")
 
     except Exception as e:
+        # Log error and notify user if update fails
         messages.error(request, f"Error: {e}")
 
+    # Redirect back to the uploads list
     return redirect('uploads')
-
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
