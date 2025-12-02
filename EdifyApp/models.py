@@ -51,6 +51,10 @@ class CustomUser(AbstractUser):
     # and password is required by default.
     REQUIRED_FIELDS = [] 
 
+    # Add these lines to your CustomUser model
+    bio = models.TextField(blank=True, null=True)
+    profile_picture = models.URLField(max_length=500, blank=True, null=True) # Stores the Supabase URL
+
     def __str__(self):
         return self.email
     
